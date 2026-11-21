@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visor 3D — Prototipo Cuadricóptero Doble Nivel</title>
+  <link rel="stylesheet" href="./css/styles.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three/three.module.js",
+        "three/addons/controls/OrbitControls.js": "./vendor/three/OrbitControls.js",
+        "three/addons/loaders/STLLoader.js": "./vendor/three/STLLoader.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="viewport-root">
+    <canvas id="drone-canvas" aria-label="Modelo 3D interactivo del dron cuadricóptero"></canvas>
+  </div>
+
+  <!-- Indicador de carga inicial -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="loading-card">
+      <div class="loading-spinner"></div>
+      <span id="loading-text">Cargando geometría STL real…</span>
+    </div>
+  </div>
+
+  <!-- Ficha tipografica minimalista superior izquierda (sin etiquetas literales) -->
+  <header id="team-card" class="ui-chrome team-card">
+    <div class="team-members">
+      <div class="team-member">
+        <span class="member-name">Fredy Omar Avila Triana</span>
+        <span class="member-code">01251151005</span>
+      </div>
+      <div class="team-member">
+        <span class="member-name">Andres Felipe Castilla Caselles</span>
+        <span class="member-code">01251151011</span>
+      </div>
+    </div>
+    <div class="team-meta">
+      <div class="meta-program">Ingeniería en Ciencias de la Computación e Inteligencia Artificial</div>
+      <div class="meta-course">Fundamentos de Electrónica y Computación</div>
+      <div class="meta-mentor">Daniel Romero</div>
+    </div>
+  </header>
+
+  <!-- Columna derecha: controles e inspeccion + referencias -->
+  <div class="right-rail ui-chrome">
+    <!-- Panel compacto superior derecho -->
+    <aside id="control-panel" class="control-panel" aria-label="Controles de escena 3D">
+      <div class="control-group">
+        <div class="control-label">Hélices</div>
+        <div class="segmented" role="group" aria-label="Velocidad de hélices">
+          <button type="button" class="seg-btn" data-prop-mode="off">OFF</button>
+          <button type="button" class="seg-btn active" data-prop-mode="idle">Ralentí</button>
+          <button type="button" class="seg-btn" data-prop-mode="flight">Vuelo</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="control-row">
+          <label id="explode-label" class="control-label" for="explode-slider">Despiece</label>
+          <div class="row-actions">
+            <span id="explode-value" class="value-badge">0%</span>
+            <button type="button" id="explode-toggle" class="mini-btn" aria-pressed="false">Abrir</button>
+          </div>
+        </div>
+        <input id="explode-slider" type="range" min="0" max="100" value="0" step="1">
+      </div>
+
+      <!-- Bloque contextual de inspeccion del componente activo -->
+      <div id="component-inspector" class="component-inspector" hidden>
+        <div id="mosfet-mode-group" class="control-group" hidden>
+          <div class="control-label">Vista de Circuito</div>
+          <div class="segmented two-col" role="group" aria-label="Modo de circuito MOSFET">
+            <button type="button" class="seg-btn active" data-mosfet-mode="single">1 Canal (Detalle)</button>
+            <button type="button" class="seg-btn" data-mosfet-mode="four">4 Canales (Placa)</button>
+          </div>
+        </div>
+
+        <button type="button" id="comp-visibility-toggle" class="toggle-btn active" aria-pressed="false">
+          <span id="comp-visibility-label">Ocultar componente</span>
+          <span id="comp-visibility-pill" class="state-pill">Visible</span>
+        </button>
+
+        <div class="control-group">
+          <div class="control-row">
+            <label class="control-label" for="comp-opacity-slider">Opacidad</label>
+            <span id="comp-opacity-value" class="value-badge">100%</span>
+          </div>
+          <input id="comp-opacity-slider" type="range" min="0" max="100" value="100" step="1">
+        </div>
+      </div>
+
+      <div class="control-toggles">
+        <button type="button" id="battery-toggle" class="toggle-btn active" aria-pressed="true">
+          <span>Batería 18650</span>
+          <span class="state-pill">Visible</span>
+        </button>
+
+        <button type="button" id="autorotate-toggle" class="toggle-btn" aria-pressed="false">
+          <span>Auto-Giro</span>
+          <span class="state-pill">OFF</span>
+        </button>
+
+        <button type="button" id="clean-mode-btn" class="toggle-btn subtle" title="Atajo: tecla H">
+          <span>Modo Limpio</span>
+          <kbd>H</kbd>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Panel desplegable Referencias debajo del panel de controles -->
+    <section id="references-panel" class="references-card" aria-label="Referencias de datasheets">
+      <button type="button" id="references-toggle" class="ref-toggle-btn" aria-expanded="false">
+        <span>Referencias</span>
+        <span class="ref-chevron" aria-hidden="true">▾</span>
+      </button>
+      <div id="references-list" class="ref-list" hidden>
+        <div class="ref-item">
+          <a class="ref-link" href="https://www.alldatasheet.com/datasheet-pdf/pdf/1148027/ESPRESSIF/ESP32-WROOM-32D.html" target="_blank" rel="noopener noreferrer">ESP32-WROOM-32D</a>
+          <a class="ref-pdf-btn" href="../hardware/datasheets/ESP32-WROOM-32D.pdf" target="_blank" rel="noopener noreferrer" title="Abrir PDF local sin conexión">PDF</a>
+        </div>
+        <div class="ref-item">
+          <a class="ref-link" href="https://www.alldatasheet.com/datasheet-pdf/pdf/17807/PHILIPS/IRFZ44N.html" target="_blank" rel="noopener noreferrer">IRFZ44N (MOSFET)</a>
+          <a class="ref-pdf-btn" href="../hardware/datasheets/IRFZ44N.pdf" target="_blank" rel="noopener noreferrer" title="Abrir PDF local sin conexión">PDF</a>
+        </div>
+        <div class="ref-item">
+          <a class="ref-link" href="https://www.alldatasheet.com/datasheet-pdf/pdf/1131968/ETC1/MT3608.html" target="_blank" rel="noopener noreferrer">MT3608 (Elevador)</a>
+          <a class="ref-pdf-btn" href="../hardware/datasheets/MT3608.pdf" target="_blank" rel="noopener noreferrer" title="Abrir PDF local sin conexión">PDF</a>
+        </div>
+        <div class="ref-item">
+          <a class="ref-link" href="https://www.alldatasheet.com/datasheet-pdf/pdf/1132807/TDK/MPU-6050.html" target="_blank" rel="noopener noreferrer">MPU-6050 (Giroscopio)</a>
+          <a class="ref-pdf-btn" href="../hardware/datasheets/MPU-6050.pdf" target="_blank" rel="noopener noreferrer" title="Abrir PDF local sin conexión">PDF</a>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Barra inferior de Vistas de Camara -->
+  <nav id="camera-bar" class="ui-chrome camera-bar" aria-label="Vistas de cámara">
+    <button type="button" class="cam-btn active" data-preset="general">General</button>
+    <button type="button" class="cam-btn" data-preset="superior">Superior</button>
+    <button type="button" class="cam-btn" data-preset="perfil">Perfil</button>
+    <button type="button" class="cam-btn" data-preset="esp32">ESP32</button>
+    <button type="button" class="cam-btn" data-preset="mosfets">MOSFETs</button>
+    <button type="button" class="cam-btn" data-preset="mt3608">MT3608</button>
+    <button type="button" class="cam-btn" data-preset="mpu6050">MPU-6050</button>
+  </nav>
+
+  <!-- Aviso efimero en modo limpio -->
+  <div id="clean-toast" class="clean-toast" aria-live="polite">
+    Modo limpio activado · Presiona <strong>H</strong> para mostrar controles
+  </div>
+
+  <!-- Contenedor modular reservado para Pedido 3.1 -->
+  <div id="panels-slot" class="ui-chrome"></div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+{
+  "name": "udes-uav-gcs",
+  "version": "1.0.0",
+  "description": "Estación de Control en Tierra (GCS) Móvil Android para Dron Cuadricóptero de Doble Nivel ESP32 + MPU6050",
+  "main": "www/index.html",
+  "scripts": {
+    "sync": "cap sync android",
+    "open:android": "cap open android",
+    "build:apk:debug": "cd android && gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/haptics": "^6.0.1",
+    "@capacitor/status-bar": "^6.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  },
+  "author": "Ingeniería Electrónica / Aeroespacial — UDES",
+  "license": "MIT"
+}

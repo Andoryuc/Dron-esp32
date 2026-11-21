@@ -1,0 +1,2641 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UDES UAV — Simulador Dinámico 2D Wi-Fi WebSocket (ESP32 / Servidor Portátil 50 Hz)</title>
+  <style>
+    :root {
+      --bg-primary: #070b12;
+      --bg-panel: rgba(12, 19, 31, 0.92);
+      --border-tech: #1e3250;
+      --cyan-hud: #00e5ff;
+      --green-nom: #00e676;
+      --amber-warn: #ffb300;
+      --red-crit: #ff1744;
+      --text-main: #e2edf8;
+      --text-dim: #7c93b0;
+      --font-mono: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
+      --font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      display: grid;
+      grid-template-rows: 58px 1fr;
+      grid-template-columns: 1fr 380px;
+    }
+
+    header {
+      grid-column: 1 / -1;
+      background: linear-gradient(90deg, #09111e 0%, #0f1c30 100%);
+      border-bottom: 1px solid var(--border-tech);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      z-index: 10;
+    }
+
+    .brand-block {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-tag {
+      background: rgba(0, 229, 255, 0.12);
+      border: 1px solid var(--cyan-hud);
+      color: var(--cyan-hud);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      letter-spacing: 1px;
+    }
+
+    .brand-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+    }
+
+    .toolbar-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .input-ws {
+      background: #081221;
+      color: var(--cyan-hud);
+      border: 1px solid #294772;
+      padding: 6px 10px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      width: 195px;
+    }
+
+    .btn-tech {
+      background: #102038;
+      color: var(--text-main);
+      border: 1px solid #294772;
+      padding: 7px 11px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-transform: uppercase;
+    }
+
+    .btn-tech:hover {
+      border-color: var(--cyan-hud);
+      color: var(--cyan-hud);
+      background: #152b4a;
+    }
+
+    .btn-tech.active {
+      background: rgba(0, 230, 118, 0.16);
+      border-color: var(--green-nom);
+      color: var(--green-nom);
+    }
+
+    .state-pill {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 7px 14px;
+      border: 1px solid var(--cyan-hud);
+      background: rgba(0, 229, 255, 0.1);
+      color: var(--cyan-hud);
+      letter-spacing: 0.8px;
+      min-width: 180px;
+      text-align: center;
+    }
+
+    .viewport-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: #05080e;
+      overflow: hidden;
+    }
+
+    #simCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .hud-overlay-top-left {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-tech);
+      padding: 12px 14px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.65;
+      pointer-events: none;
+      min-width: 280px;
+    }
+
+    .hud-overlay-bottom-left {
+      position: absolute;
+      bottom: 14px;
+      left: 14px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-tech);
+      padding: 10px 14px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      pointer-events: none;
+    }
+
+    .hud-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .hud-val {
+      color: var(--cyan-hud);
+      font-weight: 700;
+    }
+
+    aside {
+      background: #0a111d;
+      border-left: 1px solid var(--border-tech);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+    }
+
+    .panel-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-tech);
+      padding: 12px;
+    }
+
+    .panel-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--cyan-hud);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(30, 50, 80, 0.7);
+      padding-bottom: 6px;
+    }
+
+    .rssi-meter-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+    }
+
+    .bar-track {
+      width: 100%;
+      height: 12px;
+      background: #101b2d;
+      border: 1px solid #213757;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: 75%;
+      background: var(--green-nom);
+      transition: width 0.08s linear, background-color 0.15s ease;
+    }
+
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .metric-box {
+      background: #0d1726;
+      border: 1px solid #1b2d48;
+      padding: 8px;
+      font-family: var(--font-mono);
+    }
+
+    .metric-label {
+      font-size: 10px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .metric-value {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-top: 3px;
+    }
+
+    .pwm-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .pwm-item {
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .pwm-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 3px;
+    }
+
+    .sticks-preview {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stick-MiniBox {
+      background: #0c1523;
+      border: 1px solid #1d314f;
+      padding: 8px;
+      text-align: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .ws-log {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      background: #050911;
+      border: 1px solid #192a44;
+      color: #8ab4f8;
+      padding: 8px;
+      height: 92px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .hil-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .hil-controls label {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-dim);
+    }
+
+    .hil-controls input[type="range"] {
+      width: 100%;
+      accent-color: var(--cyan-hud);
+    }
+
+    .esp32-link-banner {
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(8, 20, 36, 0.94);
+      border: 1px solid var(--cyan-hud);
+      padding: 7px 16px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--cyan-hud);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 15;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.55);
+    }
+
+    .esp32-link-banner.connected {
+      border-color: var(--green-nom);
+      color: var(--green-nom);
+      background: rgba(6, 28, 18, 0.94);
+    }
+
+    .imu-badge {
+      padding: 2px 7px;
+      font-size: 10px;
+      border: 1px solid var(--cyan-hud);
+      background: rgba(0, 229, 255, 0.14);
+      color: var(--cyan-hud);
+    }
+
+    .esp32-guide-popover {
+      position: absolute;
+      top: 56px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(10, 18, 32, 0.97);
+      border: 1px solid var(--amber-warn);
+      padding: 12px 16px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-main);
+      max-width: 470px;
+      width: calc(100% - 32px);
+      z-index: 20;
+      box-shadow: 0 8px 26px rgba(0, 0, 0, 0.7);
+      display: none;
+      line-height: 1.55;
+    }
+
+    .esp32-guide-popover.visible {
+      display: block;
+    }
+
+    /* ESTILOS HUD IRON MAN — ASISTENTE DE VOZ TÁCTICO JARVIS */
+    .jarvis-hud-banner {
+      position: absolute;
+      top: 52px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(90deg, rgba(6, 22, 42, 0.96) 0%, rgba(12, 36, 66, 0.96) 50%, rgba(6, 22, 42, 0.96) 100%);
+      border: 1px solid var(--cyan-hud);
+      border-left: 4px solid var(--cyan-hud);
+      border-right: 4px solid var(--cyan-hud);
+      padding: 8px 18px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: #e6f7ff;
+      max-width: 720px;
+      width: calc(100% - 340px);
+      z-index: 16;
+      box-shadow: 0 0 24px rgba(0, 229, 255, 0.28);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      pointer-events: none;
+      transition: all 0.2s ease;
+    }
+
+    .jarvis-hud-banner.speaking {
+      border-color: var(--green-nom);
+      box-shadow: 0 0 28px rgba(0, 230, 118, 0.45);
+    }
+
+    .jarvis-arc-core {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid var(--cyan-hud);
+      background: radial-gradient(circle, #ffffff 0%, #00e5ff 45%, rgba(0, 229, 255, 0.1) 80%);
+      box-shadow: 0 0 12px var(--cyan-hud);
+      flex-shrink: 0;
+      animation: pulseArc 1.6s infinite ease-in-out;
+    }
+
+    @keyframes pulseArc {
+      0%, 100% { transform: scale(0.92); opacity: 0.85; }
+      50% { transform: scale(1.12); opacity: 1.0; box-shadow: 0 0 18px #00e676; }
+    }
+
+    .jarvis-wave-bars {
+      display: inline-flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 14px;
+      margin-left: 4px;
+    }
+
+    .jarvis-wave-bars span {
+      width: 3px;
+      height: 4px;
+      background: var(--cyan-hud);
+      transition: height 0.1s ease;
+    }
+
+    .jarvis-wave-bars.listening span:nth-child(1) { animation: eqBar 0.45s infinite alternate 0.0s; background: var(--green-nom); }
+    .jarvis-wave-bars.listening span:nth-child(2) { animation: eqBar 0.45s infinite alternate 0.12s; background: var(--green-nom); }
+    .jarvis-wave-bars.listening span:nth-child(3) { animation: eqBar 0.45s infinite alternate 0.24s; background: var(--green-nom); }
+    .jarvis-wave-bars.listening span:nth-child(4) { animation: eqBar 0.45s infinite alternate 0.08s; background: var(--green-nom); }
+
+    @keyframes eqBar {
+      from { height: 3px; }
+      to   { height: 14px; }
+    }
+
+    .wake-word-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #071324;
+      border: 1px solid #294772;
+      padding: 3px 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .wake-word-input {
+      background: transparent;
+      border: none;
+      border-bottom: 1px dashed var(--cyan-hud);
+      color: var(--cyan-hud);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      width: 68px;
+      text-transform: uppercase;
+      outline: none;
+      user-select: text;
+    }
+
+    .voice-transcript-bar {
+      background: #07101e;
+      border: 1px solid #1d3354;
+      padding: 6px 8px;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--cyan-hud);
+      margin-top: 6px;
+      min-height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .quick-cmd-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+      margin-top: 8px;
+    }
+
+    .btn-voice-cmd {
+      background: #0d1c32;
+      border: 1px solid #26436c;
+      color: var(--text-main);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      padding: 6px 6px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.14s ease;
+    }
+
+    .btn-voice-cmd:hover {
+      border-color: var(--cyan-hud);
+      color: var(--cyan-hud);
+      background: #132847;
+    }
+
+    .voice-select-row {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      margin-top: 6px;
+    }
+
+    .voice-select-dropdown {
+      flex: 1;
+      background: #081221;
+      color: var(--cyan-hud);
+      border: 1px solid #294772;
+      padding: 4px 6px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      outline: none;
+    }
+
+    .localhost-mic-alert {
+      display: none;
+      margin-top: 6px;
+      padding: 6px 8px;
+      background: rgba(255, 179, 0, 0.16);
+      border: 1px solid var(--amber-warn);
+      color: var(--amber-warn);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      line-height: 1.45;
+    }
+
+    .localhost-mic-alert.visible {
+      display: block;
+    }
+
+    .pilot-hint-badge {
+      position: absolute;
+      bottom: 48px;
+      left: 14px;
+      background: rgba(8, 22, 38, 0.92);
+      border: 1px solid var(--green-nom);
+      color: var(--green-nom);
+      padding: 6px 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand-block">
+      <span class="brand-tag">JARVIS 50 Hz</span>
+      <div>
+        <div class="brand-title">Simulador Dinámico 2D — Control por Voz JARVIS &amp; Modo Sígueme</div>
+        <div class="brand-sub">Auto-Conexión Wi-Fi: ESP32 AP (ws://192.168.4.1:81) o Simulación Completa en PC</div>
+      </div>
+    </div>
+
+    <div class="toolbar-controls">
+      <div class="wake-word-box" title="Palabra de activación por voz guardada en localStorage">
+        <span style="color:var(--text-dim);">Activador:</span>
+        <input id="inpWakeWord" class="wake-word-input" type="text" value="JARVIS" aria-label="Palabra de activación" />
+      </div>
+      <button id="btnToggleJarvisMic" class="btn-tech" title="Activar/Desactivar Reconocimiento Continuo de Voz">
+        🎙️ JARVIS: ESCUCHANDO (OFF)
+        <span id="jarvisWaveHeader" class="jarvis-wave-bars"><span></span><span></span><span></span><span></span></span>
+      </button>
+      <button id="btnTogglePcTts" class="btn-tech" title="En el PC la voz inicia en OFF por defecto para no hablar doble junto con el celular">
+        🔇 Voz PC: OFF
+      </button>
+      <input id="inpWsEndpoint" class="input-ws" type="text" value="ws://192.168.4.1:81" title="Endpoint WebSocket Wi-Fi" />
+      <button id="btnPresetEsp" class="btn-tech" title="Conectar directamente al ESP32 en ws://192.168.4.1:81">MODO ESP32</button>
+      <button id="btnPresetPc" class="btn-tech" title="Conectar al Servidor Wi-Fi del Portátil">Portátil Wi-Fi</button>
+      <button id="btnResetPose" class="btn-tech">Reiniciar (0,0)</button>
+      <div id="badgeState" class="state-pill">IDLE_DISARMED</div>
+    </div>
+  </header>
+
+  <main class="viewport-container">
+    <canvas id="simCanvas"></canvas>
+
+    <!-- INDICADOR EN PANTALLA DEL ENLACE DIRECTO CON ESP32 Y FUENTE IMU -->
+    <div id="esp32LinkBanner" class="esp32-link-banner">
+      <span id="txtEsp32BannerState">SIMULACIÓN PC + PUENTE WI-FI ACTIVO</span>
+      <span id="txtEsp32ImuMode" class="imu-badge">IMU: --</span>
+    </div>
+
+    <!-- BANNER ESTILO HUD IRON MAN PARA RESPUESTAS DE VOZ TÁCTICAS DE JARVIS -->
+    <div id="jarvisHudBanner" class="jarvis-hud-banner">
+      <div class="jarvis-arc-core"></div>
+      <div style="flex:1;">
+        <div style="font-size:9.5px; color:var(--cyan-hud); letter-spacing:1px; font-weight:700;">
+          SISTEMA TÁCTICO DE VOZ JARVIS // CANAL DE AUDIO SINTÉTICO (AUDIO PRINCIPAL EN CELULAR)
+        </div>
+        <div id="txtJarvisSpeechHud" style="margin-top:2px; font-weight:700;">
+          "Aeronave en estado IDLE_DISARMED (0% PWM). Diga «Jarvis, enciende» o use el panel táctico."
+        </div>
+      </div>
+    </div>
+
+    <!-- GUÍA EMERGENTE BREVE SI AÚN NO ESTÁ CONECTADO A LA RED WI-FI UDES_UAV_CONTROL -->
+    <div id="esp32GuidePopover" class="esp32-guide-popover" role="dialog" aria-live="polite">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; color:var(--amber-warn); font-weight:700;">
+        <span>⚡ GUÍA DE CONEXIÓN DIRECTA AL ESP32 (ws://192.168.4.1:81)</span>
+        <button id="btnCloseEspGuide" class="btn-tech" style="padding:2px 6px; font-size:10px;">✕</button>
+      </div>
+      <div>1. Conecte el Wi-Fi del portátil y del celular a la red del ESP32: <strong style="color:var(--cyan-hud);">UDES_UAV_CONTROL</strong> (Clave: <strong style="color:var(--green-nom);">12345678</strong>).</div>
+      <div>2. El simulador reintenta enlazar con <strong style="color:var(--cyan-hud);">ws://192.168.4.1:81</strong> automáticamente cada <strong>1.5 s</strong>.</div>
+      <div>3. Si desea probar en <strong>Full Simulación PC</strong> sin hardware, puede hablarle a <strong>JARVIS</strong> o arrastrar al <strong>Piloto 🧍</strong> directamente en el mapa.</div>
+    </div>
+
+    <div class="hud-overlay-top-left">
+      <div class="hud-row"><span>ENLACE WI-FI ACTIVO:</span><span id="hudEndpoint" class="hud-val">FULL SIM PC</span></div>
+      <div class="hud-row"><span>ESTADO FSM JARVIS:</span><span id="hudFsmState" class="hud-val">IDLE_DISARMED</span></div>
+      <div class="hud-row"><span>POSICIÓN DRON X/Y (m):</span><span id="hudPos" class="hud-val">0.00, 0.00</span></div>
+      <div class="hud-row"><span>POSICIÓN PILOTO X/Y (m):</span><span id="hudPilotPos" class="hud-val">0.00, 2.00</span></div>
+      <div class="hud-row"><span>DISTANCIA DRON↔PILOTO:</span><span id="hudPilotDist" class="hud-val">2.00 m (-55 dBm)</span></div>
+      <div class="hud-row"><span>VELOCIDAD PLANAR (m/s):</span><span id="hudVel" class="hud-val">0.00 m/s</span></div>
+      <div class="hud-row"><span>RUMBO AZIMUTAL (Ψ):</span><span id="hudHeading" class="hud-val">0.0°</span></div>
+      <div class="hud-row"><span>ESCALA CÁMARA (ZOOM):</span><span id="hudZoom" class="hud-val">1.00x</span></div>
+      <div class="hud-row"><span>ALTITUD SIMULADA (H):</span><span id="hudAlt" class="hud-val">0.0 m</span></div>
+      <div class="hud-row"><span>FRECUENCIA TELEMETRÍA:</span><span id="hudHz" class="hud-val">50 Hz</span></div>
+    </div>
+
+    <div class="pilot-hint-badge">
+      🧍 MODO SÍGUEME INTERACTIVO: Haga CLIC o ARRASTRE con el mouse sobre la cuadrícula (o use W,A,S,D / Flechas) para mover al Piloto Emisor Wi-Fi.
+    </div>
+
+    <div class="hud-overlay-bottom-left">
+      MAPEO WI-FI: Voz JARVIS (7 Órdenes Autónomas) | Mouse/WASD → Mover Piloto 🧍 | Protección Cobertura Wi-Fi (&lt;= -75 dBm → Retorno Automático)
+    </div>
+  </main>
+
+  <aside>
+    <!-- PANEL DE CONTROL POR VOZ JARVIS + SELECTOR DE VOCES + BOTONERA TÁCTICA -->
+    <div class="panel-card">
+      <div class="panel-title">
+        <span>🎙️ Asistente Táctico de Voz JARVIS</span>
+        <span id="txtMicStateBadge" style="color:var(--amber-warn);">STT LISTO</span>
+      </div>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <button id="btnSidebarMic" class="btn-tech" style="flex:1; font-size:10.5px; padding:6px;">
+          🎙️ ESCUCHANDO: OFF
+        </button>
+        <button id="btnToggleQuickCmds" class="btn-tech" style="font-size:10px; padding:6px;" title="Mostrar/Ocultar Comandos Rápidos">
+          ▼ Comandos (7)
+        </button>
+      </div>
+      <div class="voice-select-row">
+        <select id="voiceSelect" class="voice-select-dropdown" title="Selector de voz en Español (guardado en localStorage)">
+          <option value="">Español (Predeterminada)</option>
+        </select>
+        <button id="btnTestVoice" class="btn-tech" style="font-size:10px; padding:4px 7px;" title="Probar la voz seleccionada en Español">
+          🔈 Probar Voz
+        </button>
+      </div>
+      <div id="localhostMicAlert" class="localhost-mic-alert">
+        ⚠️ Chrome/Edge bloquea el micrófono en direcciones IP HTTP.
+        <button id="btnRedirectLocalhost" class="btn-tech" style="margin-top:4px; width:100%; font-size:10px; padding:4px; border-color:var(--amber-warn); color:var(--amber-warn);">
+          🔄 Abrir en http://localhost:8080/simulador (Habilitar Mic)
+        </button>
+      </div>
+      <div class="voice-transcript-bar">
+        <span id="txtVoiceSubtitle">🎤 Subtítulo STT: Diga «Jarvis, enciende»...</span>
+      </div>
+      <div id="quickCmdPanel" class="quick-cmd-grid">
+        <button class="btn-voice-cmd" data-voice-cmd="CMD_ARM">1. ⚡ Enciende / Arma</button>
+        <button class="btn-voice-cmd" data-voice-cmd="CMD_TAKEOFF">2. 🚀 Despega (58%)</button>
+        <button class="btn-voice-cmd" data-voice-cmd="CMD_FOLLOW">3. 🧍 Sígueme (-55dBm)</button>
+        <button class="btn-voice-cmd" data-voice-cmd="CMD_PATROL">4. 🔄 Patrulla 360°</button>
+        <button class="btn-voice-cmd" data-voice-cmd="CMD_DANCE">5. 🕺 Modo Bailar</button>
+        <button class="btn-voice-cmd" data-voice-cmd="CMD_LAND">6. 🛬 Aterriza Suave</button>
+        <button class="btn-voice-cmd" data-voice-cmd="CMD_MANUAL" style="grid-column: 1 / -1; text-align:center; border-color:var(--cyan-hud);">
+          7. 🎮 Transferir a Control Manual (Piloto)
+        </button>
+      </div>
+    </div>
+
+    <!-- ESTADO DE ENLACE RF Y SISTEMA FAILSAFE -->
+    <div class="panel-card">
+      <div class="panel-title">
+        <span>Protección de Enlace Wi-Fi &amp; Failsafe</span>
+        <span id="txtFlagCode">DISARMED_0PCT</span>
+      </div>
+      <div class="rssi-meter-row">
+        <span>POTENCIA DE ENLACE RSSI:</span>
+        <strong id="txtRssiDbm">-55 dBm</strong>
+      </div>
+      <div class="bar-track">
+        <div id="barRssi" class="bar-fill"></div>
+      </div>
+
+      <div class="telemetry-grid">
+        <div class="metric-box">
+          <div class="metric-label">Cabeceo (Pitch θ)</div>
+          <div id="txtPitch" class="metric-value">0.00°</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Alabeo (Roll φ)</div>
+          <div id="txtRoll" class="metric-value">0.00°</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Aceleración Eje Z</div>
+          <div id="txtAz" class="metric-value">1.000 g</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Tensión Bus LiPo</div>
+          <div id="txtVbat" class="metric-value">3.95 V</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- POTENCIA PWM DE LOS 4 MOTORES (MOSFETs) -->
+    <div class="panel-card">
+      <div class="panel-title">
+        <span>Potencia PWM — Etapa MOSFET (10-Bit)</span>
+        <span>GPIO 25/26/27/14</span>
+      </div>
+      <div class="pwm-list">
+        <div class="pwm-item">
+          <div class="pwm-header"><span>M1 — FRONTAL IZQUIERDO (CW - GPIO 25)</span><span id="txtM1">0 / 1023 (0%)</span></div>
+          <div class="bar-track"><div id="barM1" class="bar-fill" style="width:0%; background:#00e5ff;"></div></div>
+        </div>
+        <div class="pwm-item">
+          <div class="pwm-header"><span>M2 — FRONTAL DERECHO (CCW - GPIO 26)</span><span id="txtM2">0 / 1023 (0%)</span></div>
+          <div class="bar-track"><div id="barM2" class="bar-fill" style="width:0%; background:#00e5ff;"></div></div>
+        </div>
+        <div class="pwm-item">
+          <div class="pwm-header"><span>M3 — TRASERO IZQUIERDO (CCW - GPIO 27)</span><span id="txtM3">0 / 1023 (0%)</span></div>
+          <div class="bar-track"><div id="barM3" class="bar-fill" style="width:0%; background:#00e5ff;"></div></div>
+        </div>
+        <div class="pwm-item">
+          <div class="pwm-header"><span>M4 — TRASERO DERECHO (CW - GPIO 14)</span><span id="txtM4">0 / 1023 (0%)</span></div>
+          <div class="bar-track"><div id="barM4" class="bar-fill" style="width:0%; background:#00e5ff;"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VECTORES NORMALIZADOS DE LOS JOYSTICKS -->
+    <div class="panel-card">
+      <div class="panel-title">
+        <span>Vectores de Mando Wi-Fi / Autónomo</span>
+        <span>[-1.000, +1.000]</span>
+      </div>
+      <div class="sticks-preview">
+        <div class="stick-MiniBox">
+          <div class="metric-label">JOYSTICK IZQ (LX / LY)</div>
+          <div id="txtStickL" style="margin-top:4px; color:var(--cyan-hud); font-weight:700;">0.00 , 0.00</div>
+        </div>
+        <div class="stick-MiniBox">
+          <div class="metric-label">JOYSTICK DER (RX / RY)</div>
+          <div id="txtStickR" style="margin-top:4px; color:var(--cyan-hud); font-weight:700;">0.00 , -1.00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRUEBAS DE ESCENARIOS DE ALCANCE Y TECLADO LOCAL -->
+    <div class="panel-card">
+      <div class="panel-title">
+        <span>Control Auxiliar / Modo Teclado</span>
+        <span>WASD + ↑↓←→</span>
+      </div>
+      <div class="hil-controls">
+        <label><span>RSSI de Prueba (dBm):</span><strong id="lblSimRssi">-55 dBm</strong></label>
+        <input id="rngSimRssi" type="range" min="-95" max="-35" value="-55" />
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:4px;">
+          <button id="btnToggleHilSim" class="btn-tech" style="font-size:10px; padding:5px;">Teclado: MOVER PILOTO 🧍</button>
+          <button id="btnSimKill" class="btn-tech" style="font-size:10px; padding:5px; border-color:#ff1744; color:#ff1744;">Enviar Kill Switch</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FLUJO WEBSOCKET EN TIEMPO REAL -->
+    <div class="panel-card">
+      <div class="panel-title">
+        <span>Trama JSON Telemetría Wi-Fi (50 Hz)</span>
+        <span id="txtWsStatus">FULL SIM + WS</span>
+      </div>
+      <div id="wsLogBox" class="ws-log">Motor de simulación local JARVIS a 50 Hz activo. Buscando puente Wi-Fi en paralelo...</div>
+    </div>
+  </aside>
+
+  <script>
+    (() => {
+      "use strict";
+
+      // ======================================================================
+      // 1. DICCIONARIO DE VOZ JARVIS, TELEMETRÍA Y MODELO DINÁMICO 2D
+      // ======================================================================
+      const WAKE_WORD_STORAGE_KEY = "udes_uav_wake_word";
+      const VOICE_SELECT_STORAGE_KEY = "udes_uav_selected_voice";
+      const PC_TTS_ENABLED_STORAGE_KEY = "udes_uav_pc_tts_enabled";
+
+      const VOICE_RESPONSES = {
+        CMD_ARM: "En línea, señor. Sistemas calibrados. Prueba secuencial de motores completada. Cuadricóptero en ralentí listo para despegue.",
+        CMD_TAKEOFF: "Ascendiendo a altitud de crucero. Estabilización giroscópica activa.",
+        CMD_FOLLOW: "Modo seguimiento activado. Enganchando telemetría de señal Wi-Fi y vector de movimiento del piloto.",
+        CMD_PATROL: "Iniciando barrido perimetral de trescientos sesenta grados.",
+        CMD_DANCE: "Activando protocolo de baile acrobático en posición segura.",
+        CMD_LAND: "Iniciando descenso autónomo amortiguado. Motores en corte seguro.",
+        CMD_LAND_DONE: "Aterrizaje completado. Motores apagados.",
+        CMD_MANUAL: "Transfiriendo mando manual al piloto.",
+        ALERT_WIFI_RETURN: "Alerta de cobertura Wi-Fi. Acercando aeronave hacia la señal del piloto.",
+        ALERT_BRAKE: "Alerta crítica de alcance. Ejecutando frenado vectorial automático.",
+        ALERT_KILL: "Parada de emergencia activada. Motores en corte total."
+      };
+
+      const telemetry = {
+        lx: 0.0,
+        ly: 0.0,
+        rx: 0.0,
+        ry: -1.0,
+        rssi: -55,
+        state: "IDLE_DISARMED",
+        flag: "DISARMED_0PCT",
+        pitch: 0.0,
+        roll: 0.0,
+        yaw: 0.0,
+        az: 1.0,
+        vbat: 3.95,
+        m1: 0,
+        m2: 0,
+        m3: 0,
+        m4: 0,
+        imu_hw: null,
+        voice_seq: 0
+      };
+
+      const vehicle = {
+        x: 0.0,
+        y: 0.0,
+        vx: 0.0,
+        vy: 0.0,
+        headingRad: 0.0,
+        cameraZoom: 1.0,
+        targetZoom: 1.0,
+        altitudeM: 0.0,
+        propAngle: 0.0,
+        trail: []
+      };
+
+      // Avatar Interactivo del Piloto (Emisor Wi-Fi) en el Canvas 2D
+      const pilot = {
+        x: 0.0,
+        y: 2.0,
+        vx: 0.0,
+        vy: 0.0,
+        isDragging: false,
+        pulsePhase: 0.0
+      };
+
+      // Máquina de Estados Finitos (FSM) Local para Full Simulación PC
+      const localFsm = {
+        state: "IDLE_DISARMED",
+        stateEntryMs: performance.now(),
+        throttlePwm: 0.0,
+        failsafeEntryPwm: 593.0,
+        failsafeEntryRy: 0.10,
+        autoReturnWifi: false,
+        rssiOverride: false,
+        lastRemotePacketMs: 0
+      };
+
+      // Referencias DOM
+      const canvas = document.getElementById("simCanvas");
+      const ctx = canvas.getContext("2d");
+
+      const inpWakeWord = document.getElementById("inpWakeWord");
+      const btnToggleJarvisMic = document.getElementById("btnToggleJarvisMic");
+      const btnTogglePcTts = document.getElementById("btnTogglePcTts");
+      const btnSidebarMic = document.getElementById("btnSidebarMic");
+      const voiceSelect = document.getElementById("voiceSelect");
+      const btnTestVoice = document.getElementById("btnTestVoice");
+      const localhostMicAlert = document.getElementById("localhostMicAlert");
+      const btnRedirectLocalhost = document.getElementById("btnRedirectLocalhost");
+      const jarvisWaveHeader = document.getElementById("jarvisWaveHeader");
+      const jarvisHudBanner = document.getElementById("jarvisHudBanner");
+      const txtJarvisSpeechHud = document.getElementById("txtJarvisSpeechHud");
+      const txtMicStateBadge = document.getElementById("txtMicStateBadge");
+      const txtVoiceSubtitle = document.getElementById("txtVoiceSubtitle");
+      const btnToggleQuickCmds = document.getElementById("btnToggleQuickCmds");
+      const quickCmdPanel = document.getElementById("quickCmdPanel");
+
+      const inpWsEndpoint = document.getElementById("inpWsEndpoint");
+      const btnPresetEsp = document.getElementById("btnPresetEsp");
+      const btnPresetPc = document.getElementById("btnPresetPc");
+      const btnResetPose = document.getElementById("btnResetPose");
+      const badgeState = document.getElementById("badgeState");
+
+      const esp32LinkBanner = document.getElementById("esp32LinkBanner");
+      const txtEsp32BannerState = document.getElementById("txtEsp32BannerState");
+      const txtEsp32ImuMode = document.getElementById("txtEsp32ImuMode");
+      const esp32GuidePopover = document.getElementById("esp32GuidePopover");
+      const btnCloseEspGuide = document.getElementById("btnCloseEspGuide");
+
+      const hudEndpoint = document.getElementById("hudEndpoint");
+      const hudFsmState = document.getElementById("hudFsmState");
+      const hudPos = document.getElementById("hudPos");
+      const hudPilotPos = document.getElementById("hudPilotPos");
+      const hudPilotDist = document.getElementById("hudPilotDist");
+      const hudVel = document.getElementById("hudVel");
+      const hudHeading = document.getElementById("hudHeading");
+      const hudZoom = document.getElementById("hudZoom");
+      const hudAlt = document.getElementById("hudAlt");
+      const hudHz = document.getElementById("hudHz");
+
+      const txtFlagCode = document.getElementById("txtFlagCode");
+      const txtRssiDbm = document.getElementById("txtRssiDbm");
+      const barRssi = document.getElementById("barRssi");
+      const txtPitch = document.getElementById("txtPitch");
+      const txtRoll = document.getElementById("txtRoll");
+      const txtAz = document.getElementById("txtAz");
+      const txtVbat = document.getElementById("txtVbat");
+
+      const txtM1 = document.getElementById("txtM1");
+      const txtM2 = document.getElementById("txtM2");
+      const txtM3 = document.getElementById("txtM3");
+      const txtM4 = document.getElementById("txtM4");
+      const barM1 = document.getElementById("barM1");
+      const barM2 = document.getElementById("barM2");
+      const barM3 = document.getElementById("barM3");
+      const barM4 = document.getElementById("barM4");
+
+      const txtStickL = document.getElementById("txtStickL");
+      const txtStickR = document.getElementById("txtStickR");
+      const rngSimRssi = document.getElementById("rngSimRssi");
+      const lblSimRssi = document.getElementById("lblSimRssi");
+      const btnToggleHilSim = document.getElementById("btnToggleHilSim");
+      const btnSimKill = document.getElementById("btnSimKill");
+      const wsLogBox = document.getElementById("wsLogBox");
+      const txtWsStatus = document.getElementById("txtWsStatus");
+
+      // ======================================================================
+      // 2. MOTOR DE VOZ BIDIRECCIONAL "JARVIS" (SILENCIADO POR DEFECTO EN PC + SELECTOR DE VOCES ES)
+      // ======================================================================
+      function normalizeText(str) {
+        return String(str || "")
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .trim();
+      }
+
+      // En el PC la voz inicia en OFF por defecto para dejar el audio principal en el Celular
+      let pcTtsEnabled = false;
+      function syncPcTtsButton() {
+        if (!btnTogglePcTts) return;
+        btnTogglePcTts.classList.toggle("active", pcTtsEnabled);
+        btnTogglePcTts.textContent = pcTtsEnabled ? "🔊 Voz PC: ON" : "🔇 Voz PC: OFF";
+      }
+      if (btnTogglePcTts) {
+        syncPcTtsButton();
+        btnTogglePcTts.addEventListener("click", () => {
+          pcTtsEnabled = !pcTtsEnabled;
+          syncPcTtsButton();
+          try { localStorage.setItem(PC_TTS_ENABLED_STORAGE_KEY, pcTtsEnabled ? "1" : "0"); } catch (_e) {}
+          if (!pcTtsEnabled && "speechSynthesis" in window) {
+            try { window.speechSynthesis.cancel(); } catch (_e) {}
+          } else if (pcTtsEnabled) {
+            speakJarvis("Audio de voz activado en el simulador de escritorio.", true);
+          }
+        });
+      }
+
+      // Selector de voces priorizando y filtrando voces en Español (es-CO, es-MX, es-ES, es-US)
+      let availableSpanishVoices = [];
+      function isSpanishVoice(v) {
+        const lang = String(v.lang || "").toLowerCase();
+        const name = String(v.name || "").toLowerCase();
+        return lang.startsWith("es") || name.includes("spanish") || name.includes("espanol") || name.includes("español");
+      }
+
+      function scoreSpanishVoice(v) {
+        const lang = String(v.lang || "").toLowerCase();
+        if (lang.startsWith("es-co")) return 100;
+        if (lang.startsWith("es-mx")) return 90;
+        if (lang.startsWith("es-es")) return 85;
+        if (lang.startsWith("es-us") || lang.startsWith("es-419")) return 80;
+        if (lang.startsWith("es")) return 70;
+        return 10;
+      }
+
+      function populateVoiceSelect() {
+        if (!("speechSynthesis" in window) || !voiceSelect) return;
+        const allVoices = window.speechSynthesis.getVoices() || [];
+        if (allVoices.length === 0) return;
+
+        const spanishVoices = allVoices
+          .filter(isSpanishVoice)
+          .sort((a, b) => scoreSpanishVoice(b) - scoreSpanishVoice(a));
+
+        availableSpanishVoices = spanishVoices.length > 0 ? spanishVoices : allVoices;
+        const savedVoiceURI = (() => {
+          try { return localStorage.getItem(VOICE_SELECT_STORAGE_KEY); } catch (_e) { return null; }
+        })();
+
+        voiceSelect.innerHTML = "";
+        availableSpanishVoices.forEach((v) => {
+          const opt = document.createElement("option");
+          opt.value = v.voiceURI || v.name;
+          opt.textContent = `${v.name} (${v.lang})`;
+          voiceSelect.appendChild(opt);
+        });
+
+        if (savedVoiceURI && availableSpanishVoices.some((v) => (v.voiceURI || v.name) === savedVoiceURI)) {
+          voiceSelect.value = savedVoiceURI;
+        } else if (availableSpanishVoices.length > 0) {
+          voiceSelect.value = availableSpanishVoices[0].voiceURI || availableSpanishVoices[0].name;
+        }
+      }
+
+      if ("speechSynthesis" in window) {
+        populateVoiceSelect();
+        window.speechSynthesis.onvoiceschanged = populateVoiceSelect;
+      }
+
+      if (voiceSelect) {
+        voiceSelect.addEventListener("change", () => {
+          try { localStorage.setItem(VOICE_SELECT_STORAGE_KEY, voiceSelect.value); } catch (_e) {}
+        });
+      }
+
+      if (btnTestVoice) {
+        btnTestVoice.addEventListener("click", () => {
+          speakJarvis("En línea, señor. Síntesis de voz en español verificada correctamente.", true);
+        });
+      }
+
+      // Detectar si se abrió por IP HTTP (ej. http://192.168.39.42:8080/simulador) en vez de localhost
+      const isInsecureHttpIp = (
+        window.location.protocol === "http:" &&
+        window.location.hostname !== "localhost" &&
+        window.location.hostname !== "127.0.0.1" &&
+        window.location.hostname !== ""
+      );
+      if (isInsecureHttpIp && localhostMicAlert) {
+        localhostMicAlert.classList.add("visible");
+      }
+      if (btnRedirectLocalhost) {
+        btnRedirectLocalhost.addEventListener("click", () => {
+          const port = window.location.port ? `:${window.location.port}` : ":8080";
+          window.location.href = `http://localhost${port}/simulador`;
+        });
+      }
+
+      let wakeWord = "jarvis";
+      try {
+        const savedWake = localStorage.getItem(WAKE_WORD_STORAGE_KEY);
+        if (savedWake && savedWake.trim() !== "") {
+          wakeWord = normalizeText(savedWake);
+        }
+      } catch (_e) {}
+      if (inpWakeWord) {
+        inpWakeWord.value = wakeWord.toUpperCase();
+        inpWakeWord.addEventListener("input", () => {
+          const clean = normalizeText(inpWakeWord.value) || "jarvis";
+          wakeWord = clean;
+          try {
+            localStorage.setItem(WAKE_WORD_STORAGE_KEY, clean);
+          } catch (_e) {}
+          txtVoiceSubtitle.textContent = `🎤 Activador actualizado a: «${clean.toUpperCase()}»`;
+        });
+      }
+
+      function speakJarvis(text, forceSpeakOnPc) {
+        if (!text) return;
+        if (txtJarvisSpeechHud) {
+          txtJarvisSpeechHud.textContent = `"${text}"`;
+        }
+        if (jarvisHudBanner) {
+          jarvisHudBanner.classList.add("speaking");
+          setTimeout(() => jarvisHudBanner.classList.remove("speaking"), 3200);
+        }
+
+        // Por defecto el PC está en silencio (pcTtsEnabled = false) para que solo hable el celular,
+        // salvo que el usuario active "🔊 Voz PC: ON" o pulse "🔈 Probar Voz" (forceSpeakOnPc = true).
+        if (!pcTtsEnabled && !forceSpeakOnPc) return;
+
+        if ("speechSynthesis" in window) {
+          try {
+            window.speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.lang = "es-CO";
+            utter.rate = 1.05;
+            utter.pitch = 0.92;
+            const voices = window.speechSynthesis.getVoices() || [];
+            const selectedKey = voiceSelect ? voiceSelect.value : "";
+            let chosenVoice = voices.find((v) => (v.voiceURI || v.name) === selectedKey && isSpanishVoice(v));
+            if (!chosenVoice) {
+              const spanishList = voices.filter(isSpanishVoice).sort((a, b) => scoreSpanishVoice(b) - scoreSpanishVoice(a));
+              chosenVoice = spanishList[0] || null;
+            }
+            if (chosenVoice) {
+              utter.voice = chosenVoice;
+              utter.lang = chosenVoice.lang || "es-CO";
+            }
+            window.speechSynthesis.speak(utter);
+          } catch (_e) {}
+        }
+      }
+
+      function parseVoiceTranscriptToCommand(rawTranscript) {
+        const clean = normalizeText(rawTranscript);
+        if (!clean) return null;
+
+        const currentWake = normalizeText(inpWakeWord ? inpWakeWord.value : wakeWord) || "jarvis";
+        const hasWake = clean.includes(currentWake) || clean.includes("jarvis") || clean.includes("yarvis") || clean.includes("harvis");
+        const cmdZone = hasWake ? clean : clean;
+
+        if (
+          cmdZone.includes("enciende") ||
+          cmdZone.includes("preparate") ||
+          cmdZone.includes("arma motores") ||
+          cmdZone.includes("armar motores") ||
+          cmdZone.includes("arma")
+        ) {
+          return "CMD_ARM";
+        }
+        if (
+          cmdZone.includes("despega") ||
+          cmdZone.includes("flota") ||
+          cmdZone.includes("elevar") ||
+          cmdZone.includes("elevate") ||
+          cmdZone.includes("sube")
+        ) {
+          return "CMD_TAKEOFF";
+        }
+        if (
+          cmdZone.includes("sigueme") ||
+          cmdZone.includes("modo seguimiento") ||
+          cmdZone.includes("seguimiento") ||
+          cmdZone.includes("persigueme")
+        ) {
+          return "CMD_FOLLOW";
+        }
+        if (
+          cmdZone.includes("modo vigilancia") ||
+          cmdZone.includes("vigilancia") ||
+          cmdZone.includes("patrulla") ||
+          cmdZone.includes("escanear") ||
+          cmdZone.includes("escanea")
+        ) {
+          return "CMD_PATROL";
+        }
+        if (
+          cmdZone.includes("modo bailar") ||
+          cmdZone.includes("baila") ||
+          cmdZone.includes("bailar") ||
+          cmdZone.includes("modo fiesta") ||
+          cmdZone.includes("baile")
+        ) {
+          return "CMD_DANCE";
+        }
+        if (
+          cmdZone.includes("aterriza") ||
+          cmdZone.includes("apagate") ||
+          cmdZone.includes("descender") ||
+          cmdZone.includes("desciende")
+        ) {
+          return "CMD_LAND";
+        }
+        if (
+          cmdZone.includes("control manual") ||
+          cmdZone.includes("modo manual") ||
+          cmdZone.includes("mando manual")
+        ) {
+          return "CMD_MANUAL";
+        }
+        return null;
+      }
+
+      let recognition = null;
+      let isListeningMic = false;
+      let lastExecutedVoiceCmdTime = 0;
+
+      function updateMicUiState() {
+        if (btnToggleJarvisMic) {
+          btnToggleJarvisMic.classList.toggle("active", isListeningMic);
+          btnToggleJarvisMic.innerHTML = `${isListeningMic ? "🎙️ JARVIS: ESCUCHANDO (ON)" : "🎙️ JARVIS: ESCUCHANDO (OFF)"} <span id="jarvisWaveHeader" class="jarvis-wave-bars ${isListeningMic ? "listening" : ""}"><span></span><span></span><span></span><span></span></span>`;
+        }
+        if (btnSidebarMic) {
+          btnSidebarMic.classList.toggle("active", isListeningMic);
+          btnSidebarMic.textContent = isListeningMic ? "🎙️ ESCUCHANDO: ON (ACTIVO)" : "🎙️ ESCUCHANDO: OFF";
+        }
+        if (txtMicStateBadge) {
+          txtMicStateBadge.textContent = isListeningMic ? "MIC ON (ES-CO)" : "MIC EN ESPERA";
+          txtMicStateBadge.style.color = isListeningMic ? "var(--green-nom)" : "var(--amber-warn)";
+        }
+      }
+
+      async function toggleSpeechRecognition() {
+        // Si el usuario abrió en el mismo PC por IP HTTP (ej. http://192.168.39.42:8080/simulador), redirigir a localhost donde Chrome sí permite micrófono
+        if (isInsecureHttpIp) {
+          txtVoiceSubtitle.textContent = "🔄 Redirigiendo a http://localhost:8080/simulador para desbloquear el micrófono...";
+          const port = window.location.port ? `:${window.location.port}` : ":8080";
+          window.location.href = `http://localhost${port}/simulador`;
+          return;
+        }
+
+        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRec) {
+          txtVoiceSubtitle.textContent = "⚠️ Navegador sin SpeechRecognition; use los 7 botones rápidos abajo.";
+          return;
+        }
+
+        if (isListeningMic) {
+          isListeningMic = false;
+          try { if (recognition) recognition.stop(); } catch (_e) {}
+          updateMicUiState();
+          txtVoiceSubtitle.textContent = "🎤 Micrófono pausado.";
+          return;
+        }
+
+        // Solicitar permiso explícito de micrófono primero mediante getUserMedia({ audio: true })
+        if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === "function") {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            stream.getTracks().forEach((t) => t.stop());
+          } catch (permErr) {
+            isListeningMic = false;
+            updateMicUiState();
+            txtVoiceSubtitle.textContent = "⚠️ Permiso de micrófono bloqueado. Habilite el micrófono en la barra de direcciones o use los 7 botones rápidos.";
+            if (localhostMicAlert) localhostMicAlert.classList.add("visible");
+            return;
+          }
+        }
+
+        try {
+          recognition = new SpeechRec();
+          recognition.lang = "es-CO";
+          recognition.continuous = true;
+          recognition.interimResults = true;
+
+          recognition.onstart = () => {
+            isListeningMic = true;
+            updateMicUiState();
+            const activeWake = (inpWakeWord ? inpWakeWord.value : "JARVIS").toUpperCase();
+            txtVoiceSubtitle.textContent = `🎤 Escuchando en vivo... Diga «${activeWake}, enciende» o «${activeWake}, modo bailar»`;
+          };
+
+          recognition.onresult = (event) => {
+            let transcript = "";
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+              transcript += event.results[i][0].transcript;
+            }
+            const trimmed = transcript.trim();
+            if (trimmed) {
+              txtVoiceSubtitle.textContent = `🗣️ Detectado: "${trimmed}"`;
+              const matchedCmd = parseVoiceTranscriptToCommand(trimmed);
+              const now = performance.now();
+              if (matchedCmd && (now - lastExecutedVoiceCmdTime) > 1200) {
+                lastExecutedVoiceCmdTime = now;
+                dispatchJarvisCommand(matchedCmd, trimmed);
+              }
+            }
+          };
+
+          recognition.onerror = (ev) => {
+            if (ev && (ev.error === "not-allowed" || ev.error === "service-not-allowed")) {
+              isListeningMic = false;
+              txtVoiceSubtitle.textContent = "⚠️ Micrófono bloqueado por el navegador (use http://localhost:8080/simulador o los 7 botones tácticos).";
+              if (localhostMicAlert) localhostMicAlert.classList.add("visible");
+            }
+            updateMicUiState();
+          };
+
+          recognition.onend = () => {
+            if (isListeningMic) {
+              try { recognition.start(); } catch (_e) {}
+            } else {
+              updateMicUiState();
+            }
+          };
+
+          recognition.start();
+        } catch (_err) {
+          isListeningMic = false;
+          updateMicUiState();
+        }
+      }
+
+      if (btnToggleJarvisMic) {
+        btnToggleJarvisMic.addEventListener("click", toggleSpeechRecognition);
+      }
+      if (btnSidebarMic) {
+        btnSidebarMic.addEventListener("click", toggleSpeechRecognition);
+      }
+      if (btnToggleQuickCmds && quickCmdPanel) {
+        btnToggleQuickCmds.addEventListener("click", () => {
+          const isHidden = quickCmdPanel.style.display === "none";
+          quickCmdPanel.style.display = isHidden ? "grid" : "none";
+          btnToggleQuickCmds.textContent = isHidden ? "▼ Comandos (7)" : "▲ Comandos (7)";
+        });
+      }
+
+      document.querySelectorAll("[data-voice-cmd]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const cmd = btn.getAttribute("data-voice-cmd");
+          dispatchJarvisCommand(cmd, `Botón táctico: ${btn.textContent.trim()}`);
+        });
+      });
+
+      // ======================================================================
+      // 3. EJECUCIÓN DE ÓRDENES DE VOZ EN FSM LOCAL Y SERVIDOR WI-FI / ESP32
+      // ======================================================================
+      function dispatchJarvisCommand(cmdCode, sourceLabel) {
+        const now = performance.now();
+        localFsm.stateEntryMs = now;
+        localFsm.autoReturnWifi = false;
+        txtVoiceSubtitle.textContent = `✅ Orden ejecutada [${cmdCode}]: ${sourceLabel || cmdCode}`;
+
+        if (cmdCode === "CMD_ARM") {
+          localFsm.state = "ARMING_SEQ";
+          localFsm.throttlePwm = 205.0;
+          telemetry.state = "ARMING_SEQ";
+          telemetry.flag = "MOTOR_TEST_SEQ";
+          speakJarvis(VOICE_RESPONSES.CMD_ARM);
+        } else if (cmdCode === "CMD_TAKEOFF") {
+          if (localFsm.throttlePwm < 205.0) localFsm.throttlePwm = 205.0;
+          localFsm.state = "AUTO_TAKEOFF";
+          telemetry.state = "AUTO_TAKEOFF";
+          telemetry.flag = "CRUISE_HOVER";
+          speakJarvis(VOICE_RESPONSES.CMD_TAKEOFF);
+        } else if (cmdCode === "CMD_FOLLOW") {
+          if (localFsm.throttlePwm < 593.0) localFsm.throttlePwm = 593.0;
+          localFsm.state = "FOLLOW_ME";
+          telemetry.state = "FOLLOW_ME";
+          telemetry.flag = "FOLLOW_LOCK";
+          speakJarvis(VOICE_RESPONSES.CMD_FOLLOW);
+        } else if (cmdCode === "CMD_PATROL") {
+          if (localFsm.throttlePwm < 593.0) localFsm.throttlePwm = 593.0;
+          localFsm.state = "PATROL_360";
+          telemetry.state = "PATROL_360";
+          telemetry.flag = "PATROL_ACTIVE";
+          speakJarvis(VOICE_RESPONSES.CMD_PATROL);
+        } else if (cmdCode === "CMD_DANCE") {
+          if (localFsm.throttlePwm < 593.0) localFsm.throttlePwm = 593.0;
+          localFsm.state = "DANCE_MODE";
+          telemetry.state = "DANCE_MODE";
+          telemetry.flag = "DANCE_ACTIVE";
+          speakJarvis(VOICE_RESPONSES.CMD_DANCE);
+        } else if (cmdCode === "CMD_LAND") {
+          if (localFsm.state !== "IDLE_DISARMED" && localFsm.state !== "DISARMED") {
+            localFsm.failsafeEntryPwm = Math.max(205.0, localFsm.throttlePwm || 593.0);
+            localFsm.failsafeEntryRy = telemetry.ry;
+            localFsm.state = "FAILSAFE_LANDING";
+            telemetry.state = "FAILSAFE_LANDING";
+            telemetry.flag = "FAILSAFE_LANDING";
+            speakJarvis(VOICE_RESPONSES.CMD_LAND);
+          } else {
+            localFsm.throttlePwm = 0.0;
+            localFsm.state = "IDLE_DISARMED";
+            telemetry.state = "IDLE_DISARMED";
+            telemetry.flag = "DISARMED_0PCT";
+            telemetry.m1 = 0; telemetry.m2 = 0; telemetry.m3 = 0; telemetry.m4 = 0;
+            speakJarvis(VOICE_RESPONSES.CMD_LAND_DONE);
+          }
+        } else if (cmdCode === "CMD_MANUAL") {
+          if (localFsm.throttlePwm < 205.0) localFsm.throttlePwm = 593.0;
+          if (telemetry.ry < -0.5) telemetry.ry = 0.10;
+          localFsm.state = "MANUAL_FLIGHT";
+          telemetry.state = "MANUAL_FLIGHT";
+          telemetry.flag = "LINK_NOMINAL";
+          speakJarvis(VOICE_RESPONSES.CMD_MANUAL);
+        }
+
+        if (isWsConnected && activeSocket && activeSocket.readyState === WebSocket.OPEN) {
+          try {
+            activeSocket.send(JSON.stringify({
+              cmd: cmdCode,
+              px: Number(pilot.x.toFixed(2)),
+              py: Number(pilot.y.toFixed(2))
+            }));
+          } catch (_e) {}
+        }
+
+        updateTelemetryDom();
+      }
+
+      // ======================================================================
+      // 4. CONEXIÓN WI-FI WEBSOCKET AUTOMÁTICA (ESP32 192.168.4.1:81 / PORTÁTIL :81)
+      // ======================================================================
+      const hostFromLocation = (window.location.hostname && window.location.hostname !== "")
+        ? window.location.hostname
+        : "localhost";
+
+      const candidateEndpoints = [
+        `ws://${hostFromLocation}:81`,
+        "ws://localhost:81",
+        "ws://192.168.4.1:81",
+        `ws://${hostFromLocation}:8080/ws`
+      ];
+
+      let candidateIdx = 0;
+      let activeSocket = null;
+      let isWsConnected = false;
+      let currentTargetUrl = candidateEndpoints[0];
+      let pinnedEndpoint = null;
+      let reconnectTimer = null;
+      let espGuideDismissed = false;
+
+      let frameCounter = 0;
+      let measuredHz = 50;
+      let lastHzTimestamp = performance.now();
+
+      // Por defecto las teclas WASD / Flechas mueven al Piloto en modo Sígueme, o al Dron en modo manual
+      let keyboardMovesDroneDirectly = false;
+      const keysPressed = new Set();
+
+      function updateEsp32StatusBanner() {
+        const isEspTarget = currentTargetUrl.includes("192.168.4.1");
+        const imuLabel = telemetry.imu_hw === true
+          ? "MPU6050 FÍSICO (I2C 0x68)"
+          : (telemetry.imu_hw === false ? "IMU EMULADA EN CHIP ESP32" : "IMU SIMULACIÓN 50 Hz");
+
+        if (txtEsp32ImuMode) {
+          txtEsp32ImuMode.textContent = `IMU: ${imuLabel}`;
+        }
+
+        if (isWsConnected && isEspTarget) {
+          esp32LinkBanner.classList.add("connected");
+          txtEsp32BannerState.textContent = "CONECTADO A ESP32 [192.168.4.1]";
+          if (esp32GuidePopover) esp32GuidePopover.classList.remove("visible");
+        } else if (isWsConnected) {
+          esp32LinkBanner.classList.add("connected");
+          txtEsp32BannerState.textContent = `CONECTADO A SERVIDOR WI-FI [${currentTargetUrl}]`;
+          if (esp32GuidePopover) esp32GuidePopover.classList.remove("visible");
+        } else {
+          esp32LinkBanner.classList.remove("connected");
+          if (pinnedEndpoint && pinnedEndpoint.includes("192.168.4.1")) {
+            txtEsp32BannerState.textContent = "BUSCANDO ESP32 [ws://192.168.4.1:81] (SIMULACIÓN LOCAL ACTIVA)...";
+            if (esp32GuidePopover && !espGuideDismissed) {
+              esp32GuidePopover.classList.add("visible");
+            }
+          } else {
+            txtEsp32BannerState.textContent = "MODO FULL SIMULACIÓN PC ACTIVO (50 Hz)";
+          }
+        }
+      }
+
+      function getNextEndpoint() {
+        if (pinnedEndpoint) return pinnedEndpoint;
+        const url = candidateEndpoints[candidateIdx % candidateEndpoints.length];
+        candidateIdx++;
+        return url;
+      }
+
+      function connectWiFiWebSocket(explicitUrl) {
+        if (reconnectTimer) {
+          clearTimeout(reconnectTimer);
+          reconnectTimer = null;
+        }
+
+        if (explicitUrl) {
+          pinnedEndpoint = explicitUrl;
+          inpWsEndpoint.value = explicitUrl;
+        }
+
+        const targetUrl = explicitUrl || getNextEndpoint();
+        currentTargetUrl = targetUrl;
+        inpWsEndpoint.value = targetUrl;
+        isWsConnected = false;
+        hudEndpoint.textContent = "FULL SIM PC";
+        updateEsp32StatusBanner();
+
+        try {
+          if (activeSocket) {
+            activeSocket.onclose = null;
+            activeSocket.onerror = null;
+            activeSocket.onmessage = null;
+            activeSocket.close();
+            activeSocket = null;
+          }
+        } catch (_e) {}
+
+        let connectionTimeout = setTimeout(() => {
+          if (!isWsConnected && activeSocket) {
+            try { activeSocket.close(); } catch (_e) {}
+          }
+        }, 1450);
+
+        try {
+          const ws = new WebSocket(targetUrl);
+          activeSocket = ws;
+
+          ws.onopen = () => {
+            clearTimeout(connectionTimeout);
+            isWsConnected = true;
+            hudEndpoint.textContent = targetUrl;
+            wsLogBox.textContent = `Enlace Wi-Fi establecido con ${targetUrl} (50 Hz)`;
+
+            if (targetUrl.includes("192.168.4.1")) {
+              txtWsStatus.textContent = "CONECTADO A ESP32 [192.168.4.1]";
+              btnPresetEsp.classList.add("active");
+              btnPresetPc.classList.remove("active");
+            } else {
+              txtWsStatus.textContent = "WI-FI CONECTADO";
+              btnPresetPc.classList.add("active");
+              btnPresetEsp.classList.remove("active");
+            }
+
+            updateEsp32StatusBanner();
+
+            try {
+              ws.send(JSON.stringify({
+                role: "simulator",
+                px: Number(pilot.x.toFixed(2)),
+                py: Number(pilot.y.toFixed(2))
+              }));
+            } catch (_e) {}
+          };
+
+          ws.onmessage = (event) => {
+            if (typeof event.data === "string" && event.data.startsWith("{")) {
+              ingestTelemetryJson(event.data);
+            }
+          };
+
+          ws.onclose = () => {
+            clearTimeout(connectionTimeout);
+            isWsConnected = false;
+            btnPresetEsp.classList.remove("active");
+            btnPresetPc.classList.remove("active");
+            txtWsStatus.textContent = "FULL SIM LOCAL (50 Hz)";
+            hudEndpoint.textContent = "FULL SIM PC";
+            updateEsp32StatusBanner();
+            reconnectTimer = setTimeout(() => connectWiFiWebSocket(), 2000);
+          };
+
+          ws.onerror = () => {
+            clearTimeout(connectionTimeout);
+          };
+        } catch (_err) {
+          reconnectTimer = setTimeout(() => connectWiFiWebSocket(), 2000);
+        }
+      }
+
+      function ingestTelemetryJson(rawJson) {
+        try {
+          const data = JSON.parse(rawJson);
+          localFsm.lastRemotePacketMs = performance.now();
+
+          if (typeof data.lx === "number") telemetry.lx = data.lx;
+          if (typeof data.ly === "number") telemetry.ly = data.ly;
+          if (typeof data.rx === "number") telemetry.rx = data.rx;
+          if (typeof data.ry === "number") telemetry.ry = data.ry;
+          if (typeof data.state === "string") {
+            telemetry.state = data.state;
+            localFsm.state = data.state;
+          }
+          if (typeof data.flag === "string") telemetry.flag = data.flag;
+          if (typeof data.pitch === "number") telemetry.pitch = data.pitch;
+          if (typeof data.roll === "number") telemetry.roll = data.roll;
+          if (typeof data.yaw === "number") telemetry.yaw = data.yaw;
+          if (typeof data.az === "number") telemetry.az = data.az;
+          if (typeof data.vbat === "number") telemetry.vbat = data.vbat;
+          if (typeof data.imu_hw === "boolean") telemetry.imu_hw = data.imu_hw;
+
+          // Sincronizar coordenadas del dron y rumbo cuando provienen del servidor modo-wifi.js
+          if (typeof data.dx === "number" && typeof data.dy === "number") {
+            vehicle.x = data.dx;
+            vehicle.y = data.dy;
+          }
+          if (typeof data.heading === "number") {
+            vehicle.headingRad = data.heading;
+          }
+
+          if (!pilot.isDragging && typeof data.px === "number" && typeof data.py === "number") {
+            if (keysPressed.size === 0) {
+              pilot.x = data.px;
+              pilot.y = data.py;
+            }
+          }
+
+          // Unificar RSSI global siempre en función de la distancia real Dron-Piloto (salvo override manual activo)
+          const distNow = Math.hypot(pilot.x - vehicle.x, pilot.y - vehicle.y);
+          const calcRssi = Math.round(-49.0 - 20.0 * Math.log10(Math.max(0.5, distNow)));
+          if (!localFsm.rssiOverride) {
+            telemetry.rssi = Math.max(-95, Math.min(-35, calcRssi));
+          } else if (typeof data.rssi === "number") {
+            telemetry.rssi = data.rssi;
+          }
+
+          // Si un cliente remoto (ej. App Móvil o Servidor) disparó un anuncio de voz, actualizar HUD (y hablar solo si Voz PC está ON)
+          if (typeof data.voice_seq === "number" && data.voice_seq !== telemetry.voice_seq) {
+            const isFirstSync = telemetry.voice_seq === 0;
+            telemetry.voice_seq = data.voice_seq;
+            if (!isFirstSync && typeof data.voice_msg === "string" && data.voice_msg.trim() !== "") {
+              speakJarvis(data.voice_msg);
+            }
+          } else if (typeof data.voice_msg === "string" && data.voice_msg.trim() !== "" && data.voice_msg !== txtJarvisSpeechHud.textContent.replace(/^"|"$/g, "")) {
+            if (!data.voice_seq) {
+              speakJarvis(data.voice_msg);
+            }
+          }
+
+          if (typeof data.m1 === "number") {
+            telemetry.m1 = data.m1;
+            telemetry.m2 = data.m2;
+            telemetry.m3 = data.m3;
+            telemetry.m4 = data.m4;
+          } else {
+            synthesizeMixerFromAttitude();
+          }
+
+          frameCounter++;
+          wsLogBox.textContent = rawJson;
+          updateEsp32StatusBanner();
+          updateTelemetryDom();
+        } catch (_e) {}
+      }
+
+      function synthesizeMixerFromAttitude() {
+        if (telemetry.state === "IDLE_DISARMED" || telemetry.state === "DISARMED" || telemetry.state === "EMERGENCY_KILL") {
+          telemetry.m1 = 0;
+          telemetry.m2 = 0;
+          telemetry.m3 = 0;
+          telemetry.m4 = 0;
+          return;
+        }
+        const thrNorm = Math.max(0, Math.min(1, (telemetry.ry + 1) * 0.5));
+        const base = 180 + thrNorm * 680;
+        const p = telemetry.pitch * 4.5;
+        const r = telemetry.roll * 4.5;
+        const y = telemetry.rx * 85;
+        telemetry.m1 = Math.round(Math.max(110, Math.min(1023, base - p + r - y)));
+        telemetry.m2 = Math.round(Math.max(110, Math.min(1023, base - p - r + y)));
+        telemetry.m3 = Math.round(Math.max(110, Math.min(1023, base + p + r + y)));
+        telemetry.m4 = Math.round(Math.max(110, Math.min(1023, base + p - r - y)));
+      }
+
+      // ======================================================================
+      // 5. ACTUALIZACIÓN VISUAL DE TELEMETRÍA Y BARRAS PWM
+      // ======================================================================
+      function updateTelemetryDom() {
+        badgeState.textContent = telemetry.state;
+        if (hudFsmState) hudFsmState.textContent = telemetry.state;
+        txtFlagCode.textContent = telemetry.flag || telemetry.state;
+
+        if (telemetry.state === "EMERGENCY_KILL" || telemetry.state === "FAILSAFE_LANDING") {
+          badgeState.style.borderColor = "#ff1744";
+          badgeState.style.color = "#ff1744";
+          badgeState.style.background = "rgba(255, 23, 68, 0.16)";
+        } else if (telemetry.state === "AUTO_BRAKE" || telemetry.state === "WARN_RANGE" || telemetry.flag === "AUTO_RETURN_WIFI") {
+          badgeState.style.borderColor = "#ffb300";
+          badgeState.style.color = "#ffb300";
+          badgeState.style.background = "rgba(255, 179, 0, 0.16)";
+        } else if (
+          telemetry.state === "NOMINAL_FLIGHT" ||
+          telemetry.state === "MANUAL_FLIGHT" ||
+          telemetry.state === "AUTO_TAKEOFF" ||
+          telemetry.state === "FOLLOW_ME" ||
+          telemetry.state === "PATROL_360" ||
+          telemetry.state === "DANCE_MODE"
+        ) {
+          badgeState.style.borderColor = "#00e676";
+          badgeState.style.color = "#00e676";
+          badgeState.style.background = "rgba(0, 230, 118, 0.14)";
+        } else {
+          badgeState.style.borderColor = "#00e5ff";
+          badgeState.style.color = "#00e5ff";
+          badgeState.style.background = "rgba(0, 229, 255, 0.1)";
+        }
+
+        txtRssiDbm.textContent = `${telemetry.rssi} dBm`;
+        if (!localFsm.rssiOverride && rngSimRssi && lblSimRssi) {
+          rngSimRssi.value = String(telemetry.rssi);
+          lblSimRssi.textContent = `${telemetry.rssi} dBm`;
+        }
+        const rssiPct = Math.max(0, Math.min(100, ((telemetry.rssi + 95) / 60) * 100));
+        barRssi.style.width = `${rssiPct.toFixed(1)}%`;
+        if (telemetry.rssi < -82) {
+          barRssi.style.backgroundColor = "#ff1744";
+        } else if (telemetry.rssi <= -75) {
+          barRssi.style.backgroundColor = "#ffb300";
+        } else {
+          barRssi.style.backgroundColor = "#00e676";
+        }
+
+        txtPitch.textContent = `${telemetry.pitch.toFixed(2)}°`;
+        txtRoll.textContent = `${telemetry.roll.toFixed(2)}°`;
+        txtAz.textContent = `${telemetry.az.toFixed(3)} g`;
+        txtVbat.textContent = `${telemetry.vbat.toFixed(2)} V`;
+
+        txtStickL.textContent = `${telemetry.lx.toFixed(2)} , ${telemetry.ly.toFixed(2)}`;
+        txtStickR.textContent = `${telemetry.rx.toFixed(2)} , ${telemetry.ry.toFixed(2)}`;
+
+        const updateMotorBar = (val, txtEl, barEl) => {
+          const pct = Math.round((val / 1023) * 100);
+          txtEl.textContent = `${val} / 1023 (${pct}%)`;
+          barEl.style.width = `${pct}%`;
+        };
+        updateMotorBar(telemetry.m1, txtM1, barM1);
+        updateMotorBar(telemetry.m2, txtM2, barM2);
+        updateMotorBar(telemetry.m3, txtM3, barM3);
+        updateMotorBar(telemetry.m4, txtM4, barM4);
+      }
+
+      // ======================================================================
+      // 6. BUCLE DE SIMULACIÓN AUTÓNOMA A 50 Hz (CUANDO NO HAY SERVIDOR O EN PARALELO)
+      // ======================================================================
+      function wrapAngleRad(rad) {
+        let a = (rad + Math.PI) % (2.0 * Math.PI);
+        if (a < 0) a += 2.0 * Math.PI;
+        return a - Math.PI;
+      }
+
+      setInterval(() => {
+        const now = performance.now();
+        const dt = 0.02; // 50 Hz
+
+        // 1. Movimiento del Piloto por teclado (WASD / Flechas) cuando no está en modo joystick directo
+        let pvx = 0.0;
+        let pvy = 0.0;
+        if (!keyboardMovesDroneDirectly || localFsm.state === "FOLLOW_ME") {
+          const pilotSpeed = 3.2; // m/s
+          if (keysPressed.has("KeyA") || keysPressed.has("ArrowLeft")) pvx -= pilotSpeed;
+          if (keysPressed.has("KeyD") || keysPressed.has("ArrowRight")) pvx += pilotSpeed;
+          if (keysPressed.has("KeyW") || keysPressed.has("ArrowUp")) pvy += pilotSpeed;
+          if (keysPressed.has("KeyS") || keysPressed.has("ArrowDown")) pvy -= pilotSpeed;
+
+          if (pvx !== 0.0 || pvy !== 0.0) {
+            pilot.x += pvx * dt;
+            pilot.y += pvy * dt;
+            localFsm.rssiOverride = false;
+            if (isWsConnected && activeSocket && activeSocket.readyState === WebSocket.OPEN) {
+              try {
+                activeSocket.send(JSON.stringify({
+                  px: Number(pilot.x.toFixed(2)),
+                  py: Number(pilot.y.toFixed(2))
+                }));
+              } catch (_e) {}
+            }
+          }
+        } else {
+          // Teclado controla los joysticks del dron directamente (transferencia a control manual solo si supera zona muerta > 0.28)
+          let lx = 0.0;
+          let ly = 0.0;
+          let rx = 0.0;
+          let ry = telemetry.ry;
+
+          if (keysPressed.has("KeyA")) lx -= 0.75;
+          if (keysPressed.has("KeyD")) lx += 0.75;
+          if (keysPressed.has("KeyW")) ly += 0.75;
+          if (keysPressed.has("KeyS")) ly -= 0.75;
+          if (keysPressed.has("ArrowLeft")) rx -= 0.65;
+          if (keysPressed.has("ArrowRight")) rx += 0.65;
+          if (keysPressed.has("ArrowUp")) ry = Math.min(1.0, ry + 0.03);
+          if (keysPressed.has("ArrowDown")) ry = Math.max(-1.0, ry - 0.03);
+
+          if (Math.hypot(lx, ly) > 0.28 || Math.abs(rx) > 0.28) {
+            if (
+              localFsm.state === "AUTO_TAKEOFF" ||
+              localFsm.state === "FOLLOW_ME" ||
+              localFsm.state === "PATROL_360" ||
+              localFsm.state === "DANCE_MODE" ||
+              localFsm.state === "ARMED_IDLE"
+            ) {
+              dispatchJarvisCommand("CMD_MANUAL", "Intervención de mando > 28%");
+            }
+            if (localFsm.state === "MANUAL_FLIGHT") {
+              telemetry.lx = lx;
+              telemetry.ly = ly;
+              telemetry.rx = rx;
+              telemetry.ry = ry;
+              if (isWsConnected && activeSocket && activeSocket.readyState === WebSocket.OPEN) {
+                try {
+                  activeSocket.send(JSON.stringify({
+                    lx: Number(lx.toFixed(3)),
+                    ly: Number(ly.toFixed(3)),
+                    rx: Number(rx.toFixed(3)),
+                    ry: Number(ry.toFixed(3))
+                  }));
+                } catch (_e) {}
+              }
+            }
+          }
+        }
+
+        // 2. Cálculo global unificado de RSSI en función de la distancia real Dron-Piloto
+        const dx = pilot.x - vehicle.x;
+        const dy = pilot.y - vehicle.y;
+        const distToPilot = Math.hypot(dx, dy);
+        const rssiFromDist = Math.round(-49.0 - 20.0 * Math.log10(Math.max(0.5, distToPilot)));
+
+        if (!localFsm.rssiOverride) {
+          telemetry.rssi = Math.max(-95, Math.min(-35, rssiFromDist));
+        } else {
+          telemetry.rssi = parseInt(rngSimRssi.value, 10);
+        }
+
+        // Si el servidor modo-wifi.js está enviando tramas activas a 50 Hz, él gobierna la máquina de estados
+        const remoteActive = isWsConnected && ((now - localFsm.lastRemotePacketMs) < 350);
+        if (remoteActive && !currentTargetUrl.includes("192.168.4.1")) {
+          updateTelemetryDom();
+          return;
+        }
+
+        // 3. Protección Activa de Cobertura Wi-Fi en Simulación Local / Asistencia ESP32:
+        // Si el dron está en el aire y el piloto se aleja a RSSI <= -75 dBm (d >= 10 m), activar retorno hacia el piloto
+        const isAirborneForWifiGuard = (
+          localFsm.state === "MANUAL_FLIGHT" ||
+          localFsm.state === "WARN_RANGE" ||
+          localFsm.state === "AUTO_BRAKE" ||
+          localFsm.state === "AUTO_TAKEOFF" ||
+          localFsm.state === "PATROL_360" ||
+          localFsm.state === "DANCE_MODE"
+        );
+        if (isAirborneForWifiGuard && telemetry.rssi <= -75) {
+          localFsm.state = "FOLLOW_ME";
+          localFsm.autoReturnWifi = true;
+          localFsm.stateEntryMs = now;
+          if (localFsm.throttlePwm < 593.0) localFsm.throttlePwm = 593.0;
+          telemetry.state = "FOLLOW_ME";
+          telemetry.flag = "AUTO_RETURN_WIFI";
+          speakJarvis(VOICE_RESPONSES.ALERT_WIFI_RETURN);
+          if (isWsConnected && activeSocket && activeSocket.readyState === WebSocket.OPEN) {
+            try {
+              activeSocket.send(JSON.stringify({
+                cmd: "CMD_FOLLOW",
+                px: Number(pilot.x.toFixed(2)),
+                py: Number(pilot.y.toFixed(2))
+              }));
+            } catch (_e) {}
+          }
+        }
+
+        // 4. Máquina de Estados Finitos (FSM) Local a 50 Hz
+        const elapsedMs = now - localFsm.stateEntryMs;
+
+        if (localFsm.state === "IDLE_DISARMED" || localFsm.state === "DISARMED" || localFsm.state === "EMERGENCY_KILL") {
+          localFsm.throttlePwm = 0.0;
+          telemetry.m1 = 0;
+          telemetry.m2 = 0;
+          telemetry.m3 = 0;
+          telemetry.m4 = 0;
+          telemetry.pitch = 0.0;
+          telemetry.roll = 0.0;
+          telemetry.lx = 0.0;
+          telemetry.ly = 0.0;
+          telemetry.rx = 0.0;
+          telemetry.ry = -1.0;
+          telemetry.az = 1.0;
+          vehicle.vx = 0.0;
+          vehicle.vy = 0.0;
+        } else if (localFsm.state === "ARMING_SEQ") {
+          // Prueba secuencial M1 -> M2 -> M3 -> M4 durante 250 ms cada uno
+          telemetry.pitch = 0.0;
+          telemetry.roll = 0.0;
+          telemetry.lx = 0.0;
+          telemetry.ly = 0.0;
+          telemetry.rx = 0.0;
+          telemetry.ry = -0.60;
+          vehicle.vx = 0.0;
+          vehicle.vy = 0.0;
+          const testDuty = 280;
+          if (elapsedMs < 250) {
+            telemetry.m1 = testDuty; telemetry.m2 = 0; telemetry.m3 = 0; telemetry.m4 = 0;
+          } else if (elapsedMs < 500) {
+            telemetry.m1 = 0; telemetry.m2 = testDuty; telemetry.m3 = 0; telemetry.m4 = 0;
+          } else if (elapsedMs < 750) {
+            telemetry.m1 = 0; telemetry.m2 = 0; telemetry.m3 = testDuty; telemetry.m4 = 0;
+          } else if (elapsedMs < 1000) {
+            telemetry.m1 = 0; telemetry.m2 = 0; telemetry.m3 = 0; telemetry.m4 = testDuty;
+          } else {
+            localFsm.state = "ARMED_IDLE";
+            localFsm.stateEntryMs = now;
+            telemetry.state = "ARMED_IDLE";
+            telemetry.flag = "ARMED_20PCT";
+          }
+        } else if (localFsm.state === "ARMED_IDLE") {
+          // 4 motores armados al 20% PWM (205 / 1023) con PID nivelado en 0°
+          localFsm.throttlePwm = 205.0;
+          telemetry.pitch = 0.0;
+          telemetry.roll = 0.0;
+          telemetry.lx = 0.0;
+          telemetry.ly = 0.0;
+          telemetry.rx = 0.0;
+          telemetry.ry = -0.60;
+          telemetry.az = 1.0;
+          vehicle.vx = 0.0;
+          vehicle.vy = 0.0;
+          telemetry.m1 = 205;
+          telemetry.m2 = 205;
+          telemetry.m3 = 205;
+          telemetry.m4 = 205;
+        } else if (localFsm.state === "AUTO_TAKEOFF") {
+          // Rampa suave hasta 58% PWM (593 / 1023) y escala de cámara Zoom 1.60x
+          const targetPwm = 593.0;
+          localFsm.throttlePwm += (targetPwm - localFsm.throttlePwm) * 0.08;
+          telemetry.pitch += (0.0 - telemetry.pitch) * 0.25;
+          telemetry.roll += (0.0 - telemetry.roll) * 0.25;
+          telemetry.lx = 0.0;
+          telemetry.ly = 0.0;
+          telemetry.rx = 0.0;
+          telemetry.ry = 0.10; // Zoom 1.60x
+          telemetry.az = Math.abs(targetPwm - localFsm.throttlePwm) > 15 ? 1.15 : 1.00;
+          vehicle.vx *= 0.85;
+          vehicle.vy *= 0.85;
+          const pwmInt = Math.round(localFsm.throttlePwm);
+          telemetry.m1 = pwmInt;
+          telemetry.m2 = pwmInt;
+          telemetry.m3 = pwmInt;
+          telemetry.m4 = pwmInt;
+        } else if (localFsm.state === "FOLLOW_ME") {
+          // Modo Sígueme con vector directo hacia el piloto: (vx, vy) apunta hacia (pilot.x, pilot.y)
+          const targetDist = 2.0;
+          let targetYawRateNorm = 0.0;
+          if (distToPilot > 0.15) {
+            const desiredHeading = Math.atan2(dx, dy);
+            const headingErr = wrapAngleRad(desiredHeading - vehicle.headingRad);
+            targetYawRateNorm = Math.max(-0.90, Math.min(0.90, headingErr * 1.8));
+          }
+
+          const ux = distToPilot > 0.01 ? (dx / distToPilot) : 0.0;
+          const uy = distToPilot > 0.01 ? (dy / distToPilot) : 0.0;
+
+          let desiredSpeed = 0.0;
+          if (distToPilot > 2.05) {
+            desiredSpeed = Math.min(3.8, (distToPilot - targetDist) * 1.45);
+          } else if (distToPilot < 1.20) {
+            desiredSpeed = -Math.min(1.8, (targetDist - distToPilot) * 1.25);
+          } else {
+            desiredSpeed = (distToPilot - targetDist) * 0.65;
+            if (localFsm.autoReturnWifi && distToPilot <= 2.2) {
+              localFsm.autoReturnWifi = false;
+              telemetry.flag = "FOLLOW_LOCK";
+            }
+          }
+
+          const targetVx = ux * desiredSpeed;
+          const targetVy = uy * desiredSpeed;
+          vehicle.vx += (targetVx - vehicle.vx) * Math.min(1.0, dt * 6.5);
+          vehicle.vy += (targetVy - vehicle.vy) * Math.min(1.0, dt * 6.5);
+
+          const cosH = Math.cos(vehicle.headingRad);
+          const sinH = Math.sin(vehicle.headingRad);
+          const fwdSpeed = vehicle.vx * sinH + vehicle.vy * cosH;
+          const rightSpeed = vehicle.vx * cosH - vehicle.vy * sinH;
+
+          const desiredPitch = Math.max(-18.0, Math.min(18.0, fwdSpeed * 4.5));
+          const desiredRoll  = Math.max(-16.0, Math.min(16.0, rightSpeed * 4.5));
+
+          telemetry.pitch += (desiredPitch - telemetry.pitch) * 0.28;
+          telemetry.roll  += (desiredRoll  - telemetry.roll)  * 0.28;
+          telemetry.ly = Number((telemetry.pitch / 22.0).toFixed(3));
+          telemetry.lx = Number((telemetry.roll  / 22.0).toFixed(3));
+          telemetry.rx = Number(targetYawRateNorm.toFixed(3));
+          telemetry.ry = 0.10; // Zoom 1.60x
+
+          const base = 593.0;
+          const pTerm = telemetry.pitch * 4.2;
+          const rTerm = telemetry.roll * 4.2;
+          const yTerm = telemetry.rx * 75.0;
+          const clamp = (v) => Math.round(Math.max(110, Math.min(1023, v)));
+          telemetry.m1 = clamp(base - pTerm + rTerm - yTerm);
+          telemetry.m2 = clamp(base - pTerm - rTerm + yTerm);
+          telemetry.m3 = clamp(base + pTerm + rTerm + yTerm);
+          telemetry.m4 = clamp(base + pTerm - rTerm - yTerm);
+        } else if (localFsm.state === "PATROL_360") {
+          // Rotación suave de 360° aplicando diferencial PWM continuo en las diagonales
+          telemetry.pitch *= 0.85;
+          telemetry.roll *= 0.85;
+          telemetry.lx = 0.0;
+          telemetry.ly = 0.0;
+          telemetry.rx = 0.42;
+          telemetry.ry = 0.10;
+          vehicle.vx *= 0.85;
+          vehicle.vy *= 0.85;
+          telemetry.yaw = (telemetry.yaw + 48.0 * dt) % 360.0;
+          telemetry.m1 = 545;
+          telemetry.m2 = 640;
+          telemetry.m3 = 640;
+          telemetry.m4 = 545;
+        } else if (localFsm.state === "DANCE_MODE") {
+          // Coreografía rítmica continua en posición segura: Roll ±18°, Pitch ±14°, giros Yaw y destello rítmico PWM
+          const tSec = elapsedMs * 0.001;
+          telemetry.roll  = 18.0 * Math.sin(tSec * 5.5);
+          telemetry.pitch = 14.0 * Math.cos(tSec * 4.2);
+          telemetry.rx    = 0.62 * Math.sin(tSec * 2.8);
+          telemetry.lx    = Number((telemetry.roll / 22.0).toFixed(3));
+          telemetry.ly    = Number((telemetry.pitch / 22.0).toFixed(3));
+          telemetry.ry    = Number((0.10 + 0.12 * Math.sin(tSec * 6.0)).toFixed(3));
+          telemetry.az    = Number((1.00 + 0.18 * Math.sin(tSec * 6.0)).toFixed(3));
+
+          vehicle.vx = Math.cos(tSec * 4.2) * 0.35;
+          vehicle.vy = Math.sin(tSec * 5.5) * 0.35;
+
+          const base = 593.0 + 75.0 * Math.sin(tSec * 6.0);
+          const pTerm = telemetry.pitch * 5.0;
+          const rTerm = telemetry.roll * 5.0;
+          const yTerm = telemetry.rx * 85.0;
+          const clamp = (v) => Math.round(Math.max(110, Math.min(1023, v)));
+          telemetry.m1 = clamp(base - pTerm + rTerm - yTerm);
+          telemetry.m2 = clamp(base - pTerm - rTerm + yTerm);
+          telemetry.m3 = clamp(base + pTerm + rTerm + yTerm);
+          telemetry.m4 = clamp(base + pTerm - rTerm - yTerm);
+        } else if (localFsm.state === "FAILSAFE_LANDING") {
+          // Aterrizaje completo hasta 0.0 m y 0% PWM en ~2.5 segundos con apagado total de motores
+          const elapsedSec = elapsedMs * 0.001;
+          const progress = Math.min(1.0, elapsedSec / 2.5);
+          localFsm.throttlePwm = Math.max(0.0, localFsm.failsafeEntryPwm * (1.0 - progress));
+          telemetry.pitch *= 0.80;
+          telemetry.roll *= 0.80;
+          telemetry.lx = 0.0;
+          telemetry.ly = 0.0;
+          telemetry.rx = 0.0;
+          telemetry.ry = -1.0 + (localFsm.failsafeEntryRy + 1.0) * (1.0 - progress);
+          telemetry.az = progress < 0.85 ? 0.96 : 1.00;
+          vehicle.vx *= 0.85;
+          vehicle.vy *= 0.85;
+
+          if (progress >= 1.0 || localFsm.throttlePwm <= 12.0) {
+            localFsm.throttlePwm = 0.0;
+            localFsm.state = "IDLE_DISARMED";
+            telemetry.state = "IDLE_DISARMED";
+            telemetry.flag = "DISARMED_0PCT";
+            telemetry.ry = -1.0;
+            telemetry.pitch = 0.0;
+            telemetry.roll = 0.0;
+            telemetry.m1 = 0;
+            telemetry.m2 = 0;
+            telemetry.m3 = 0;
+            telemetry.m4 = 0;
+            vehicle.altitudeM = 0.0;
+            vehicle.targetZoom = 1.0;
+            speakJarvis(VOICE_RESPONSES.CMD_LAND_DONE);
+          } else {
+            const p = Math.round(localFsm.throttlePwm);
+            telemetry.m1 = p;
+            telemetry.m2 = p;
+            telemetry.m3 = p;
+            telemetry.m4 = p;
+          }
+        } else {
+          // MANUAL_FLIGHT / NOMINAL_FLIGHT
+          telemetry.pitch += (telemetry.ly * 22.0 - telemetry.pitch) * 0.25;
+          telemetry.roll  += (telemetry.lx * 22.0 - telemetry.roll)  * 0.25;
+          synthesizeMixerFromAttitude();
+        }
+
+        frameCounter++;
+        const syntheticJson = JSON.stringify({
+          state: telemetry.state,
+          flag: telemetry.flag,
+          rssi: telemetry.rssi,
+          pitch: Number(telemetry.pitch.toFixed(1)),
+          roll: Number(telemetry.roll.toFixed(1)),
+          m1: telemetry.m1,
+          m2: telemetry.m2,
+          m3: telemetry.m3,
+          m4: telemetry.m4,
+          px: Number(pilot.x.toFixed(2)),
+          py: Number(pilot.y.toFixed(2)),
+          dx: Number(vehicle.x.toFixed(2)),
+          dy: Number(vehicle.y.toFixed(2))
+        });
+        if (!remoteActive) {
+          wsLogBox.textContent = syntheticJson;
+        }
+        updateTelemetryDom();
+      }, 20);
+
+      // ======================================================================
+      // 7. INTERACCIÓN CON EL MOUSE EN EL CANVAS 2D PARA MOVER AL PILOTO 🧍
+      // ======================================================================
+      function screenToWorldCoords(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        const sx = clientX - rect.left;
+        const sy = clientY - rect.top;
+        const cx = canvas.width * 0.5;
+        const cy = canvas.height * 0.5;
+        const pixelsPerMeter = 42.0 * vehicle.cameraZoom;
+        const worldX = vehicle.x + (sx - cx) / pixelsPerMeter;
+        const worldY = vehicle.y - (sy - cy) / pixelsPerMeter;
+        return { x: worldX, y: worldY };
+      }
+
+      function updatePilotFromMouse(clientX, clientY) {
+        const pt = screenToWorldCoords(clientX, clientY);
+        pilot.x = pt.x;
+        pilot.y = pt.y;
+        // Al mover al piloto en el mapa, calcular siempre el RSSI real por distancia
+        localFsm.rssiOverride = false;
+        if (isWsConnected && activeSocket && activeSocket.readyState === WebSocket.OPEN) {
+          try {
+            activeSocket.send(JSON.stringify({
+              px: Number(pilot.x.toFixed(2)),
+              py: Number(pilot.y.toFixed(2)),
+              rssi_override: false
+            }));
+          } catch (_e) {}
+        }
+      }
+
+      canvas.addEventListener("pointerdown", (e) => {
+        pilot.isDragging = true;
+        canvas.setPointerCapture(e.pointerId);
+        updatePilotFromMouse(e.clientX, e.clientY);
+      });
+
+      canvas.addEventListener("pointermove", (e) => {
+        if (!pilot.isDragging) return;
+        updatePilotFromMouse(e.clientX, e.clientY);
+      });
+
+      canvas.addEventListener("pointerup", () => {
+        pilot.isDragging = false;
+      });
+
+      canvas.addEventListener("pointercancel", () => {
+        pilot.isDragging = false;
+      });
+
+      // ======================================================================
+      // 8. INTEGRACIÓN CINEMÁTICA Y RENDERIZADO EN CANVAS 2D (CON PILOTO Y ANILLOS RSSI)
+      // ======================================================================
+      function resizeCanvas() {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+      }
+      window.addEventListener("resize", resizeCanvas);
+      resizeCanvas();
+
+      let lastAnimTime = performance.now();
+
+      function updateVehiclePhysics(dt) {
+        pilot.pulsePhase = (pilot.pulsePhase + dt * 2.4) % (Math.PI * 2);
+
+        const isDisarmed = (
+          telemetry.state === "IDLE_DISARMED" ||
+          telemetry.state === "DISARMED" ||
+          telemetry.state === "EMERGENCY_KILL"
+        );
+        const isFlying = (
+          !isDisarmed &&
+          telemetry.state !== "ARMING_SEQ" &&
+          telemetry.state !== "ARMED_IDLE"
+        );
+
+        const remoteServerDrivingCoords = (
+          isWsConnected &&
+          ((performance.now() - localFsm.lastRemotePacketMs) < 350) &&
+          !currentTargetUrl.includes("192.168.4.1")
+        );
+
+        if (!remoteServerDrivingCoords) {
+          if (isFlying) {
+            const isAutoMode = (
+              telemetry.state === "FOLLOW_ME" ||
+              telemetry.state === "PATROL_360" ||
+              telemetry.state === "DANCE_MODE" ||
+              telemetry.state === "AUTO_TAKEOFF"
+            );
+
+            const yawRateRad = isAutoMode
+              ? (telemetry.rx * 2.1)
+              : ((telemetry.lx * 1.45) + (telemetry.rx * 1.15));
+            vehicle.headingRad = wrapAngleRad(vehicle.headingRad + yawRateRad * dt);
+
+            if (telemetry.state !== "FOLLOW_ME" && telemetry.state !== "DANCE_MODE" && telemetry.state !== "FAILSAFE_LANDING") {
+              const forwardAccel = (telemetry.pitch / 22.0) * 14.0;
+              const lateralAccel = (telemetry.roll  / 22.0) * 9.5;
+
+              const cosH = Math.cos(vehicle.headingRad);
+              const sinH = Math.sin(vehicle.headingRad);
+
+              const axWorld = (sinH * forwardAccel) + (cosH * lateralAccel);
+              const ayWorld = (cosH * forwardAccel) - (sinH * lateralAccel);
+
+              vehicle.vx += axWorld * dt;
+              vehicle.vy += ayWorld * dt;
+
+              const drag = Math.pow(0.18, dt);
+              vehicle.vx *= drag;
+              vehicle.vy *= drag;
+            }
+
+            vehicle.x += vehicle.vx * dt;
+            vehicle.y += vehicle.vy * dt;
+          } else {
+            vehicle.vx = 0.0;
+            vehicle.vy = 0.0;
+          }
+        }
+
+        // Escala de cámara y altitud: en IDLE_DISARMED queda en 1.00x y 0.0 m; en vuelo sube a 1.60x (~12.0 m)
+        if (isDisarmed || telemetry.state === "ARMING_SEQ" || telemetry.state === "ARMED_IDLE") {
+          vehicle.targetZoom = 1.0;
+          vehicle.cameraZoom += (vehicle.targetZoom - vehicle.cameraZoom) * Math.min(1.0, dt * 6.0);
+          vehicle.altitudeM += (0.0 - vehicle.altitudeM) * Math.min(1.0, dt * 6.0);
+          if (vehicle.altitudeM < 0.05) vehicle.altitudeM = 0.0;
+        } else if (telemetry.state === "FAILSAFE_LANDING") {
+          const clampedRy = Math.max(-1.0, Math.min(1.0, telemetry.ry));
+          const landingProgress = Math.max(0.0, Math.min(1.0, (clampedRy + 1.0) / 1.1));
+          vehicle.targetZoom = 1.0 + landingProgress * 0.6;
+          vehicle.cameraZoom += (vehicle.targetZoom - vehicle.cameraZoom) * Math.min(1.0, dt * 8.0);
+          vehicle.altitudeM = Math.max(0.0, landingProgress * 12.0);
+        } else {
+          const clampedRy = Math.max(-1.0, Math.min(1.0, telemetry.ry));
+          vehicle.targetZoom = 1.5 + (clampedRy * 1.0);
+          vehicle.cameraZoom += (vehicle.targetZoom - vehicle.cameraZoom) * Math.min(1.0, dt * 6.0);
+          const targetAlt = Math.max(0.0, ((vehicle.cameraZoom - 1.0) / 0.6) * 12.0);
+          vehicle.altitudeM += (targetAlt - vehicle.altitudeM) * Math.min(1.0, dt * 4.5);
+        }
+
+        const avgPwm = (telemetry.m1 + telemetry.m2 + telemetry.m3 + telemetry.m4) * 0.25;
+        vehicle.propAngle += (avgPwm / 1023.0) * 45.0 * dt;
+
+        if (isFlying) {
+          if (vehicle.trail.length === 0 || Math.hypot(vehicle.x - vehicle.trail[vehicle.trail.length - 1].x, vehicle.y - vehicle.trail[vehicle.trail.length - 1].y) > 0.05) {
+            vehicle.trail.push({ x: vehicle.x, y: vehicle.y });
+            if (vehicle.trail.length > 240) {
+              vehicle.trail.shift();
+            }
+          }
+        }
+
+        const speedMps = Math.hypot(vehicle.vx, vehicle.vy);
+        let headingDeg = (vehicle.headingRad * 180 / Math.PI) % 360;
+        if (headingDeg < 0) headingDeg += 360;
+
+        const distToPilot = Math.hypot(pilot.x - vehicle.x, pilot.y - vehicle.y);
+        const estRssi = Math.round(-49.0 - 20.0 * Math.log10(Math.max(0.5, distToPilot)));
+
+        hudPos.textContent = `${vehicle.x.toFixed(2)}, ${vehicle.y.toFixed(2)}`;
+        if (hudPilotPos) hudPilotPos.textContent = `${pilot.x.toFixed(2)}, ${pilot.y.toFixed(2)}`;
+        if (hudPilotDist) hudPilotDist.textContent = `${distToPilot.toFixed(2)} m (${estRssi} dBm)`;
+        hudVel.textContent = `${speedMps.toFixed(2)} m/s`;
+        hudHeading.textContent = `${headingDeg.toFixed(1)}°`;
+        hudZoom.textContent = `${vehicle.cameraZoom.toFixed(2)}x`;
+        hudAlt.textContent = `${vehicle.altitudeM.toFixed(1)} m`;
+      }
+
+      function drawPilotAvatarAndRssiRings(cx, cy, pixelsPerMeter) {
+        const pxScreen = cx + (pilot.x - vehicle.x) * pixelsPerMeter;
+        const pyScreen = cy - (pilot.y - vehicle.y) * pixelsPerMeter;
+
+        ctx.save();
+
+        // Anillos concéntricos de potencia RSSI (-45 dBm a -85 dBm) alrededor del Piloto Emisor Wi-Fi
+        const rssiRings = [
+          { rMeters: 0.63, label: "-45 dBm (Muy Cerca)", color: "rgba(255, 179, 0, 0.32)", dash: [4, 4] },
+          { rMeters: 2.00, label: "-55 dBm (Zona Segura 2.0 m)", color: "rgba(0, 230, 118, 0.65)", dash: [] },
+          { rMeters: 5.00, label: "-63 dBm", color: "rgba(0, 229, 255, 0.25)", dash: [6, 6] },
+          { rMeters: 10.0, label: "-75 dBm (Umbral Retorno Wi-Fi)", color: "rgba(255, 179, 0, 0.28)", dash: [8, 6] },
+          { rMeters: 15.0, label: "-85 dBm (Frenado Crítico)", color: "rgba(255, 23, 68, 0.22)", dash: [10, 6] }
+        ];
+
+        rssiRings.forEach((ring) => {
+          const rPx = ring.rMeters * pixelsPerMeter;
+          ctx.strokeStyle = ring.color;
+          ctx.lineWidth = ring.rMeters === 2.0 ? 2.0 : 1.2;
+          ctx.setLineDash(ring.dash);
+          ctx.beginPath();
+          ctx.arc(pxScreen, pyScreen, rPx, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.fillStyle = ring.color;
+          ctx.font = "10px 'JetBrains Mono', monospace";
+          ctx.fillText(ring.label, pxScreen + 6, pyScreen - rPx + 12);
+        });
+        ctx.setLineDash([]);
+
+        // Vector de enganche táctico entre el Piloto y el Dron
+        const distM = Math.hypot(pilot.x - vehicle.x, pilot.y - vehicle.y);
+        ctx.strokeStyle = telemetry.state === "FOLLOW_ME"
+          ? "rgba(0, 230, 118, 0.85)"
+          : "rgba(0, 229, 255, 0.35)";
+        ctx.lineWidth = telemetry.state === "FOLLOW_ME" ? 2.2 : 1.2;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(pxScreen, pyScreen);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Etiqueta de distancia sobre el vector Dron <-> Piloto
+        const midX = (cx + pxScreen) * 0.5;
+        const midY = (cy + pyScreen) * 0.5;
+        ctx.fillStyle = "rgba(7, 15, 28, 0.88)";
+        ctx.strokeStyle = telemetry.state === "FOLLOW_ME" ? "#00e676" : "#00e5ff";
+        ctx.lineWidth = 1;
+        ctx.fillRect(midX - 52, midY - 11, 104, 20);
+        ctx.strokeRect(midX - 52, midY - 11, 104, 20);
+        ctx.fillStyle = telemetry.state === "FOLLOW_ME" ? "#00e676" : "#00e5ff";
+        ctx.font = "bold 10px 'JetBrains Mono', monospace";
+        ctx.textAlign = "center";
+        ctx.fillText(`d = ${distM.toFixed(2)} m`, midX, midY + 3);
+
+        // Onda pulsante de emisión Wi-Fi del Piloto
+        const pulseR = 14 + Math.sin(pilot.pulsePhase) * 6;
+        ctx.fillStyle = "rgba(0, 230, 118, 0.18)";
+        ctx.beginPath();
+        ctx.arc(pxScreen, pyScreen, pulseR, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Marcador central del Avatar del Piloto
+        ctx.fillStyle = "#0a1e32";
+        ctx.strokeStyle = "#00e676";
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.arc(pxScreen, pyScreen, 13, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Icono táctico de Piloto + Etiqueta
+        ctx.fillStyle = "#00e676";
+        ctx.font = "bold 13px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("🧍", pxScreen, pyScreen + 4);
+
+        ctx.fillStyle = "rgba(8, 20, 36, 0.92)";
+        ctx.strokeStyle = "#00e676";
+        ctx.lineWidth = 1;
+        ctx.fillRect(pxScreen - 78, pyScreen + 17, 156, 20);
+        ctx.strokeRect(pxScreen - 78, pyScreen + 17, 156, 20);
+        ctx.fillStyle = "#00e676";
+        ctx.font = "bold 10px 'JetBrains Mono', monospace";
+        ctx.fillText("🧍 PILOTO (Emisor Wi-Fi)", pxScreen, pyScreen + 30);
+
+        ctx.restore();
+      }
+
+      function renderScene(now) {
+        const dt = Math.min(0.05, (now - lastAnimTime) * 0.001);
+        lastAnimTime = now;
+
+        if (now - lastHzTimestamp >= 1000) {
+          measuredHz = frameCounter;
+          frameCounter = 0;
+          lastHzTimestamp = now;
+          hudHz.textContent = `${measuredHz} Hz`;
+        }
+
+        updateVehiclePhysics(dt);
+
+        const w = canvas.width;
+        const h = canvas.height;
+        const cx = w * 0.5;
+        const cy = h * 0.5;
+
+        ctx.clearRect(0, 0, w, h);
+
+        // 1. CUADRÍCULA MÉTRICA CON ZOOM DE CÁMARA
+        const pixelsPerMeter = 42.0 * vehicle.cameraZoom;
+        const offsetX = (cx - vehicle.x * pixelsPerMeter) % pixelsPerMeter;
+        const offsetY = (cy + vehicle.y * pixelsPerMeter) % pixelsPerMeter;
+
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(30, 58, 95, 0.45)";
+        ctx.beginPath();
+        for (let x = offsetX; x < w; x += pixelsPerMeter) {
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, h);
+        }
+        for (let y = offsetY; y < h; y += pixelsPerMeter) {
+          ctx.moveTo(0, y);
+          ctx.lineTo(w, y);
+        }
+        ctx.stroke();
+
+        const majorStep = pixelsPerMeter * 5;
+        const majorOffX = (cx - vehicle.x * pixelsPerMeter) % majorStep;
+        const majorOffY = (cy + vehicle.y * pixelsPerMeter) % majorStep;
+
+        ctx.strokeStyle = "rgba(0, 229, 255, 0.16)";
+        ctx.beginPath();
+        for (let x = majorOffX; x < w; x += majorStep) {
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, h);
+        }
+        for (let y = majorOffY; y < h; y += majorStep) {
+          ctx.moveTo(0, y);
+          ctx.lineTo(w, y);
+        }
+        ctx.stroke();
+
+        const originScreenX = cx - vehicle.x * pixelsPerMeter;
+        const originScreenY = cy + vehicle.y * pixelsPerMeter;
+        ctx.strokeStyle = "rgba(0, 230, 118, 0.35)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(originScreenX, 0);
+        ctx.lineTo(originScreenX, h);
+        ctx.moveTo(0, originScreenY);
+        ctx.lineTo(w, originScreenY);
+        ctx.stroke();
+
+        // 2. AVATAR INTERACTIVO DEL PILOTO Y ANILLOS CONCÉNTRICOS RSSI (-45 dBm a -85 dBm)
+        drawPilotAvatarAndRssiRings(cx, cy, pixelsPerMeter);
+
+        // 3. ESTELA DE TRAYECTORIA DEL DRON
+        if (vehicle.trail.length > 1) {
+          ctx.strokeStyle = "rgba(0, 229, 255, 0.45)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          for (let i = 0; i < vehicle.trail.length; i++) {
+            const pt = vehicle.trail[i];
+            const sx = cx + (pt.x - vehicle.x) * pixelsPerMeter;
+            const sy = cy - (pt.y - vehicle.y) * pixelsPerMeter;
+            if (i === 0) ctx.moveTo(sx, sy);
+            else ctx.lineTo(sx, sy);
+          }
+          ctx.stroke();
+        }
+
+        // 4. VEHÍCULO CUADRICÓPTERO DE DOBLE NIVEL
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(vehicle.cameraZoom, vehicle.cameraZoom);
+        ctx.rotate(vehicle.headingRad);
+
+        ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
+        ctx.beginPath();
+        ctx.arc(8, 10, 34, 0, Math.PI * 2);
+        ctx.fill();
+
+        const armLen = 38;
+        ctx.strokeStyle = telemetry.state === "DANCE_MODE" ? "#ff00e5" : "#5c7cfa";
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(-armLen, -armLen);
+        ctx.lineTo(armLen, armLen);
+        ctx.moveTo(armLen, -armLen);
+        ctx.lineTo(-armLen, armLen);
+        ctx.stroke();
+
+        ctx.fillStyle = "#111e34";
+        ctx.strokeStyle = telemetry.state === "FOLLOW_ME"
+          ? "#00e676"
+          : (telemetry.state === "DANCE_MODE" ? "#ff00e5" : "#00e5ff");
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(-18, -22, 36, 44, 6);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "#00e676";
+        ctx.beginPath();
+        ctx.moveTo(0, -34);
+        ctx.lineTo(-8, -20);
+        ctx.lineTo(8, -20);
+        ctx.closePath();
+        ctx.fill();
+
+        const motorCoords = [
+          { x: -armLen, y: -armLen, pwm: telemetry.m1 },
+          { x:  armLen, y: -armLen, pwm: telemetry.m2 },
+          { x: -armLen, y:  armLen, pwm: telemetry.m3 },
+          { x:  armLen, y:  armLen, pwm: telemetry.m4 }
+        ];
+
+        motorCoords.forEach((m, idx) => {
+          ctx.save();
+          ctx.translate(m.x, m.y);
+          const pNorm = m.pwm / 1023.0;
+          ctx.strokeStyle = telemetry.state === "FAILSAFE_LANDING"
+            ? "#ff1744"
+            : (telemetry.state === "AUTO_BRAKE" ? "#ffb300" : (telemetry.state === "DANCE_MODE" ? "#ff00e5" : (m.pwm > 0 ? "#00e676" : "#00e5ff")));
+          ctx.lineWidth = 2;
+          ctx.fillStyle = `rgba(0, 229, 255, ${0.08 + pNorm * 0.34})`;
+          ctx.beginPath();
+          ctx.arc(0, 0, 18, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          const dir = (idx === 0 || idx === 3) ? 1 : -1;
+          ctx.rotate(vehicle.propAngle * dir);
+          ctx.strokeStyle = "#e2edf8";
+          ctx.lineWidth = 2.4;
+          ctx.beginPath();
+          ctx.moveTo(-15, 0);
+          ctx.lineTo(15, 0);
+          ctx.moveTo(0, -15);
+          ctx.lineTo(0, 15);
+          ctx.stroke();
+          ctx.restore();
+        });
+
+        ctx.restore();
+
+        drawAttitudeHudOverlay(w - 95, 85);
+        requestAnimationFrame(renderScene);
+      }
+
+      function drawAttitudeHudOverlay(cx, cy) {
+        const radius = 58;
+        ctx.save();
+        ctx.translate(cx, cy);
+
+        ctx.fillStyle = "rgba(10, 18, 30, 0.88)";
+        ctx.strokeStyle = "#1e3250";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(0, 0, radius - 4, 0, Math.PI * 2);
+        ctx.clip();
+
+        ctx.rotate((telemetry.roll * Math.PI) / 180.0);
+        const pitchOffset = (telemetry.pitch / 35.0) * (radius * 0.75);
+
+        ctx.strokeStyle = "#00e5ff";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-radius, pitchOffset);
+        ctx.lineTo(radius, pitchOffset);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.strokeStyle = "#ffb300";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-22, 0);
+        ctx.lineTo(-7, 0);
+        ctx.moveTo(7, 0);
+        ctx.lineTo(22, 0);
+        ctx.arc(0, 0, 2, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // ======================================================================
+      // 9. EVENTOS DE SELECCIÓN DE ENDPOINT WI-FI Y CONTROLES
+      // ======================================================================
+      btnPresetEsp.addEventListener("click", () => {
+        espGuideDismissed = false;
+        connectWiFiWebSocket("ws://192.168.4.1:81");
+      });
+
+      btnPresetPc.addEventListener("click", () => {
+        if (esp32GuidePopover) esp32GuidePopover.classList.remove("visible");
+        connectWiFiWebSocket(`ws://${hostFromLocation}:81`);
+      });
+
+      if (btnCloseEspGuide) {
+        btnCloseEspGuide.addEventListener("click", () => {
+          espGuideDismissed = true;
+          if (esp32GuidePopover) esp32GuidePopover.classList.remove("visible");
+        });
+      }
+
+      inpWsEndpoint.addEventListener("change", () => {
+        const val = inpWsEndpoint.value.trim();
+        if (val.startsWith("ws://") || val.startsWith("wss://")) {
+          espGuideDismissed = false;
+          connectWiFiWebSocket(val);
+        }
+      });
+
+      btnResetPose.addEventListener("click", () => {
+        vehicle.x = 0.0;
+        vehicle.y = 0.0;
+        vehicle.vx = 0.0;
+        vehicle.vy = 0.0;
+        vehicle.headingRad = 0.0;
+        vehicle.trail = [];
+        pilot.x = 0.0;
+        pilot.y = 2.0;
+        localFsm.rssiOverride = false;
+        if (isWsConnected && activeSocket && activeSocket.readyState === WebSocket.OPEN) {
+          try {
+            activeSocket.send(JSON.stringify({ reset_pose: 1, px: 0.0, py: 2.0, rssi_override: false }));
+          } catch (_e) {}
+        }
+      });
+
+      rngSimRssi.addEventListener("input", () => {
+        const val = parseInt(rngSimRssi.value, 10);
+        localFsm.rssiOverride = true;
+        lblSimRssi.textContent = `${val} dBm`;
+        telemetry.rssi = val;
+        if (isWsConnected && activeSocket && activeSocket.readyState === WebSocket.OPEN) {
+          activeSocket.send(JSON.stringify({ rssi_sim: val, rssi_override: true }));
+        }
+      });
+
+      btnToggleHilSim.addEventListener("click", () => {
+        keyboardMovesDroneDirectly = !keyboardMovesDroneDirectly;
+        btnToggleHilSim.classList.toggle("active", keyboardMovesDroneDirectly);
+        btnToggleHilSim.textContent = keyboardMovesDroneDirectly
+          ? "Teclado: MANDO DRON 🎮"
+          : "Teclado: MOVER PILOTO 🧍";
+      });
+
+      btnSimKill.addEventListener("click", () => {
+        localFsm.state = "EMERGENCY_KILL";
+        telemetry.state = "EMERGENCY_KILL";
+        telemetry.flag = "KILL_ACTIVE";
+        speakJarvis(VOICE_RESPONSES.ALERT_KILL);
+        updateTelemetryDom();
+        if (isWsConnected && activeSocket && activeSocket.readyState === WebSocket.OPEN) {
+          activeSocket.send(JSON.stringify({ kill: 1, arm: 0 }));
+        }
+      });
+
+      window.addEventListener("keydown", (e) => {
+        if (document.activeElement === inpWakeWord || document.activeElement === inpWsEndpoint) return;
+        keysPressed.add(e.code);
+      });
+      window.addEventListener("keyup", (e) => keysPressed.delete(e.code));
+
+      // Iniciar auto-conexión Wi-Fi WebSocket y bucle gráfico
+      updateMicUiState();
+      updateTelemetryDom();
+      connectWiFiWebSocket();
+      requestAnimationFrame(renderScene);
+    })();
+  </script>
+</body>
+</html>

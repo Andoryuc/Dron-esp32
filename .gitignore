@@ -1,0 +1,47 @@
+# Herramientas locales de compilación (OpenJDK 17 + Android SDK 34)
+.build-tools/
+
+# Binarios compilados y releases locales
+releases/
+*.apk
+*.aab
+*.ap_
+
+# Node / Capacitor / Web
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.cache/
+dist/
+
+# Android / Gradle / Capacitor generados
+app-android/android/.gradle/
+app-android/android/build/
+app-android/android/app/build/
+app-android/android/capacitor-cordova-android-plugins/build/
+app-android/android/local.properties
+app-android/android/app/src/main/assets/public/
+app-android/android/app/src/main/assets/capacitor.config.json
+app-android/android/app/src/main/assets/capacitor.plugins.json
+app-android/android/app/src/main/res/xml/config.xml
+*.keystore
+*.jks
+.idea/
+*.iml
+
+# Python / Sistema Operativo / IDE / Temporales
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+*.tmp
+*.bak
+*.log
+
+# Videos pesados accidentales
+*.mp4
+*.mov
+*.avi

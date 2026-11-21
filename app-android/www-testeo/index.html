@@ -1,0 +1,2916 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#070c16" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23070c16'/%3E%3Cpath d='M16 16L48 48M48 16L16 48' stroke='%2300e5ff' stroke-width='5' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='16' r='8' fill='%230d1729' stroke='%2300e5ff' stroke-width='3'/%3E%3Ccircle cx='48' cy='16' r='8' fill='%230d1729' stroke='%2300e5ff' stroke-width='3'/%3E%3Ccircle cx='16' cy='48' r='8' fill='%230d1729' stroke='%2300e5ff' stroke-width='3'/%3E%3Ccircle cx='48' cy='48' r='8' fill='%230d1729' stroke='%2300e5ff' stroke-width='3'/%3E%3C/svg%3E" />
+  <title>Dron Testeo — Banco 4 Motores + Voz Offline</title>
+  <style>
+    :root {
+      --bg: #070c16;
+      --bg2: #0b1322;
+      --card: #101b2f;
+      --card2: #0c1526;
+      --line: #21375a;
+      --cyan: #00e5ff;
+      --green: #00e676;
+      --amber: #ffb300;
+      --red: #ff1744;
+      --purple: #b388ff;
+      --txt: #eaf2fb;
+      --muted: #88a2c4;
+      --mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+      --ui: system-ui, -apple-system, Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      min-height: 100%;
+      background: radial-gradient(circle at 20% 0%, #0e1c36 0%, var(--bg) 55%);
+      color: var(--txt);
+      font-family: var(--ui);
+      touch-action: pan-y;
+    }
+
+    body {
+      padding-bottom: env(safe-area-inset-bottom, 16px);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: rgba(7, 12, 22, 0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--line);
+      padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .top-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .brand-title {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      color: var(--txt);
+    }
+
+    .brand-sub {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--cyan);
+    }
+
+    .conn-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 9px;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      border: 1px solid var(--line);
+      background: var(--card2);
+      color: var(--muted);
+    }
+
+    .badge.ok {
+      color: var(--green);
+      border-color: rgba(0, 230, 118, 0.45);
+      background: rgba(0, 230, 118, 0.1);
+    }
+
+    .badge.bad {
+      color: #ff8097;
+      border-color: rgba(255, 23, 68, 0.5);
+      background: rgba(255, 23, 68, 0.12);
+    }
+
+    .badge.warn {
+      color: var(--amber);
+      border-color: rgba(255, 179, 0, 0.45);
+      background: rgba(255, 179, 0, 0.1);
+    }
+
+    .badge.flight {
+      color: #69f0ae;
+      border-color: rgba(0, 229, 255, 0.65);
+      background: rgba(0, 229, 255, 0.16);
+    }
+
+    .badge.dance {
+      color: #e0ccff;
+      border-color: rgba(179, 136, 255, 0.7);
+      background: rgba(179, 136, 255, 0.18);
+    }
+
+    .btn-refresh {
+      height: 30px;
+      padding: 0 10px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: var(--card);
+      color: var(--txt);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-stop-all {
+      width: 100%;
+      min-height: 50px;
+      border: 2px solid #ff8aa0;
+      border-radius: 10px;
+      background: linear-gradient(180deg, #ff2b56 0%, #b50026 100%);
+      color: #ffffff;
+      font-family: var(--mono);
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 0.7px;
+      cursor: pointer;
+      box-shadow: 0 4px 18px rgba(255, 23, 68, 0.42);
+    }
+
+    .btn-stop-all:active {
+      transform: scale(0.985);
+    }
+
+    .hud-banner {
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .hud-flight {
+      border: 1px solid rgba(0, 229, 255, 0.7);
+      background: linear-gradient(90deg, rgba(0, 229, 255, 0.18), rgba(0, 230, 118, 0.12));
+      color: #a7ffeb;
+    }
+
+    .hud-confirm {
+      border: 2px solid var(--amber);
+      background: rgba(255, 179, 0, 0.2);
+      color: #ffe082;
+      animation: blinkConfirm 0.9s infinite ease-in-out;
+    }
+
+    @keyframes blinkConfirm {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255, 179, 0, 0.45); opacity: 1; }
+      50% { box-shadow: 0 0 14px 2px rgba(255, 179, 0, 0.35); opacity: 0.78; }
+    }
+
+    .hud-alert {
+      border: 2px solid #ff6e40;
+      background: rgba(255, 110, 64, 0.18);
+      color: #ffd180;
+    }
+
+    .hud-dance {
+      border: 1px solid rgba(179, 136, 255, 0.75);
+      background: linear-gradient(90deg, rgba(103, 58, 183, 0.32), rgba(0, 229, 255, 0.16));
+      color: #ede7f6;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 6px;
+    }
+
+    .dance-hdr-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .dance-phase {
+      font-size: 11px;
+      color: var(--cyan);
+      font-weight: 700;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(16, 27, 47, 0.96) 0%, rgba(11, 19, 34, 0.96) 100%);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    .manual-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border-radius: 14px;
+      transition: box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+
+    .manual-section.highlighted {
+      padding: 6px;
+      border: 2px solid var(--amber);
+      box-shadow: 0 0 22px rgba(255, 179, 0, 0.38);
+    }
+
+    .card-hdr {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      border-bottom: 1px solid rgba(33, 55, 90, 0.75);
+      padding-bottom: 8px;
+    }
+
+    .card-title {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      color: var(--cyan);
+    }
+
+    .badges-inline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .setting-box {
+      background: var(--card2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .setting-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .setting-val {
+      font-size: 15px;
+      color: var(--amber);
+      font-weight: 900;
+    }
+
+    .setting-hint {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .pwr-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .pwr-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .pwr-pills {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+    }
+
+    .pill-btn {
+      height: 38px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--card2);
+      color: var(--txt);
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .pill-btn.active {
+      border-color: var(--cyan);
+      background: rgba(0, 229, 255, 0.18);
+      color: var(--cyan);
+      box-shadow: 0 0 10px rgba(0, 229, 255, 0.28);
+    }
+
+    .voice-controls-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    @media (min-width: 560px) {
+      .voice-controls-row {
+        grid-template-columns: 1.7fr 1fr;
+      }
+    }
+
+    .btn-voice {
+      width: 100%;
+      min-height: 58px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 2px solid var(--cyan);
+      background: linear-gradient(180deg, #103252 0%, #091d33 100%);
+      color: #ffffff;
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 0.4px;
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.2s ease;
+    }
+
+    .btn-voice:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-voice.listening {
+      border-color: var(--green);
+      background: linear-gradient(180deg, #0b4a2b 0%, #062b19 100%);
+      color: #d6ffea;
+      animation: pulseListen 1.3s infinite ease-in-out;
+    }
+
+    @keyframes pulseListen {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.45); }
+      50% { box-shadow: 0 0 0 10px rgba(0, 230, 118, 0); }
+    }
+
+    .btn-calib {
+      min-height: 58px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(179, 136, 255, 0.7);
+      background: linear-gradient(180deg, #271a4a 0%, #150e2b 100%);
+      color: #ede7f6;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .btn-calib.active {
+      border-color: var(--amber);
+      background: rgba(255, 179, 0, 0.22);
+      color: #ffe082;
+    }
+
+    .btn-calib:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .calib-banner {
+      border: 1px dashed var(--amber);
+      border-radius: 8px;
+      background: rgba(255, 179, 0, 0.12);
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: #ffe082;
+    }
+
+    .btn-mini {
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: var(--card);
+      color: var(--txt);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .voice-visor {
+      background: #060b14;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-family: var(--mono);
+    }
+
+    .visor-heard {
+      font-size: 13px;
+      color: var(--txt);
+      word-break: break-word;
+    }
+
+    .visor-heard span {
+      color: var(--cyan);
+      font-weight: 800;
+    }
+
+    .visor-tts {
+      font-size: 12px;
+      color: #b388ff;
+      word-break: break-word;
+    }
+
+    .visor-action {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--amber);
+    }
+
+    .visor-action.ok { color: var(--green); }
+    .visor-action.stop { color: #ff8aa0; }
+    .visor-action.err { color: #ff8097; }
+
+    details.fold-box {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--card2);
+      overflow: hidden;
+    }
+
+    details.fold-card {
+      background: linear-gradient(180deg, rgba(16, 27, 47, 0.96) 0%, rgba(11, 19, 34, 0.96) 100%);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      overflow: hidden;
+    }
+
+    details summary {
+      padding: 12px 14px;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      font-weight: 800;
+      color: var(--cyan);
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    details.fold-box summary {
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--txt);
+    }
+
+    details summary::-webkit-details-marker {
+      display: none;
+    }
+
+    details summary::after {
+      content: "▾";
+      color: var(--cyan);
+      font-size: 14px;
+    }
+
+    details[open] summary::after {
+      content: "▴";
+    }
+
+    .fold-body {
+      padding: 12px 14px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border-top: 1px solid rgba(33, 55, 90, 0.65);
+    }
+
+    .field-grp {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .field-grp label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .field-grp input[type="text"] {
+      width: 100%;
+      height: 40px;
+      padding: 0 10px;
+      border-radius: 6px;
+      border: 1px solid #2b4875;
+      background: #060b14;
+      color: var(--txt);
+      font-family: var(--mono);
+      font-size: 12.5px;
+    }
+
+    .cmd-guide {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 5px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      background: #060b14;
+      border: 1px solid rgba(33, 55, 90, 0.7);
+      border-radius: 6px;
+      padding: 8px 10px;
+    }
+
+    .cmd-guide b {
+      color: var(--cyan);
+    }
+
+    .phrases-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .btn-save {
+      flex: 1;
+      min-width: 140px;
+      height: 36px;
+      border-radius: 6px;
+      border: 1px solid var(--green);
+      background: rgba(0, 230, 118, 0.16);
+      color: var(--green);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .btn-reset {
+      height: 36px;
+      padding: 0 12px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: var(--card);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    @media (min-width: 600px) {
+      .quick-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .btn-quick {
+      min-height: 40px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid #2b4875;
+      background: #0d1d36;
+      color: var(--txt);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .btn-quick.dance {
+      border-color: rgba(179, 136, 255, 0.65);
+      background: rgba(179, 136, 255, 0.16);
+      color: #e0ccff;
+    }
+
+    .btn-quick.warn {
+      border-color: rgba(255, 179, 0, 0.6);
+      background: rgba(255, 179, 0, 0.12);
+      color: #ffe082;
+    }
+
+    .dance-cfg-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    @media (min-width: 680px) {
+      .dance-cfg-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .dance-test-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .master-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--mono);
+    }
+
+    .master-pct {
+      font-size: 24px;
+      font-weight: 900;
+      color: var(--cyan);
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 32px;
+      accent-color: var(--cyan);
+      cursor: pointer;
+      touch-action: pan-x;
+    }
+
+    .bar-track {
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: #060b14;
+      border: 1px solid var(--line);
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #00b8d4 0%, #00e676 100%);
+      transition: width 0.08s linear;
+    }
+
+    .bar-fill.dance-fill {
+      background: linear-gradient(90deg, #b388ff 0%, #00e5ff 100%);
+    }
+
+    .motors-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    @media (min-width: 720px) {
+      .motors-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    @media (max-width: 390px) {
+      .motors-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .motor-card {
+      background: var(--card2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .motor-hdr {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-family: var(--mono);
+    }
+
+    .motor-name {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--txt);
+    }
+
+    .motor-pin {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .motor-pct {
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--cyan);
+      font-family: var(--mono);
+    }
+
+    .tests-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    @media (min-width: 540px) {
+      .tests-row {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .btn-test {
+      min-height: 46px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #2d558c;
+      background: #102442;
+      color: var(--txt);
+      font-family: var(--mono);
+      font-size: 12.5px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .btn-test.ramp {
+      border-color: var(--amber);
+      color: var(--amber);
+      background: rgba(255, 179, 0, 0.12);
+    }
+
+    .btn-test:disabled {
+      opacity: 0.48;
+      cursor: wait;
+    }
+
+    .hint-foot {
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      padding-bottom: 6px;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(4, 8, 16, 0.82);
+      backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 400px;
+      background: linear-gradient(180deg, #16243f 0%, #0b1322 100%);
+      border: 2px solid var(--purple);
+      border-radius: 14px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.65);
+    }
+
+    .modal-title {
+      font-family: var(--mono);
+      font-size: 17px;
+      font-weight: 900;
+      color: #ede7f6;
+    }
+
+    .modal-msg {
+      font-size: 14px;
+      line-height: 1.45;
+      color: var(--txt);
+    }
+
+    .modal-actions {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    @media (min-width: 420px) {
+      .modal-actions {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .btn-modal-yes {
+      min-height: 44px;
+      border-radius: 8px;
+      border: 1px solid #ff6b86;
+      background: linear-gradient(180deg, #ff2b56 0%, #b50026 100%);
+      color: #ffffff;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .btn-modal-no {
+      min-height: 44px;
+      border-radius: 8px;
+      border: 1px solid var(--cyan);
+      background: rgba(0, 229, 255, 0.16);
+      color: var(--cyan);
+      font-family: var(--mono);
+      font-size: 12.5px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="top-row">
+      <div class="brand">
+        <div class="brand-title">Dron Testeo — Banco 4 Motores + Voz Offline</div>
+        <div class="brand-sub">ESP32 Wi-Fi (UDES_MOTORES_TEST · http://192.168.4.1)</div>
+      </div>
+      <div class="conn-wrap">
+        <div id="espBadge" class="badge bad">🔴 ESP32: Verificando...</div>
+        <div id="stateBadge" class="badge ok">LISTO</div>
+        <button id="btnRefresh" class="btn-refresh" type="button">↻ Estado</button>
+      </div>
+    </div>
+
+    <div id="flightModeBanner" class="hud-banner hud-flight hidden">
+      <span>✈️ MODO VUELO ACTIVO (Apagado directo bloqueado)</span>
+      <span>Solo "Dron, aterriza" o control manual</span>
+    </div>
+
+    <div id="confirmOffBanner" class="hud-banner hud-confirm hidden">
+      <span>⚠️ ¿ESTÁS SEGURO? Di "Dron, estoy seguro, apágate"</span>
+      <span id="confirmCountdown">8s</span>
+    </div>
+
+    <div id="flightAlertBanner" class="hud-banner hud-alert hidden">
+      <span>🛡️ Estoy volando — te paso el control manual (usa sliders o "Dron, aterriza")</span>
+      <button id="btnDismissFlightAlert" class="btn-mini" type="button">OK</button>
+    </div>
+
+    <div id="danceBanner" class="hud-banner hud-dance hidden">
+      <div class="dance-hdr-line">
+        <span id="danceTitleText">🕺 BAILANDO...</span>
+        <span id="danceTimeText">00:00 / 00:00</span>
+      </div>
+      <div id="dancePhaseText" class="dance-phase">Sincronizando audio nativo...</div>
+      <div class="bar-track"><div id="barDanceProgress" class="bar-fill dance-fill"></div></div>
+    </div>
+
+    <button id="btnStopAll" class="btn-stop-all" type="button">⛔ APAGAR TODO (0%)</button>
+  </header>
+
+  <main class="container">
+    <!-- TARJETA CONTROL POR VOZ OFFLINE "DRON" -->
+    <section class="card">
+      <div class="card-hdr">
+        <span class="card-title">CONTROL POR VOZ OFFLINE ("DRON" · VOSK + TTS MASCULINO)</span>
+        <div class="badges-inline">
+          <span id="voskBadge" class="badge warn">⏳ Cargando Vosk...</span>
+          <span id="ttsBadge" class="badge warn">🔊 TTS: Iniciando...</span>
+        </div>
+      </div>
+
+      <div class="setting-box">
+        <div class="setting-top">
+          <span>🎈 Umbral de despegue (Helio):</span>
+          <span id="lblHeliumThreshold" class="setting-val">55%</span>
+        </div>
+        <input id="rngHeliumThreshold" type="range" min="10" max="95" step="1" value="55" />
+        <div class="setting-hint">
+          Si la potencia actual alcanza o supera este % (o si activaste "Dron, estás volando"), el comando "Dron, apaga" queda bloqueado y te pasa el control manual.
+        </div>
+      </div>
+
+      <div class="pwr-row">
+        <div class="pwr-label">Potencia al encender con "Dron, enciende":</div>
+        <div id="powerSelector" class="pwr-pills">
+          <button class="pill-btn" data-pct="25" type="button">25%</button>
+          <button class="pill-btn active" data-pct="40" type="button">40%</button>
+          <button class="pill-btn" data-pct="60" type="button">60%</button>
+          <button class="pill-btn" data-pct="80" type="button">80%</button>
+          <button class="pill-btn" data-pct="100" type="button">100%</button>
+        </div>
+      </div>
+
+      <div class="voice-controls-row">
+        <button id="btnVoice" class="btn-voice" type="button" disabled>🎙️ TOCAR Y HABLAR ("DRON")</button>
+        <button id="btnCalibrate" class="btn-calib" type="button" disabled>🧪 Calibrar 'Dron'</button>
+      </div>
+
+      <div id="calibBanner" class="calib-banner hidden">
+        <span>🎙️ Modo calibración: di claramente <b>"Dron"</b> una vez...</span>
+        <button id="btnCancelCalib" class="btn-mini" type="button">Cancelar</button>
+      </div>
+
+      <div class="voice-visor">
+        <div class="visor-heard">🎧 Vosk detectó: <span id="lblHeard">—</span></div>
+        <div class="visor-tts">🗣️ Dron: <span id="lblTts">Esperando comandos con el activador "Dron"...</span></div>
+        <div id="lblAction" class="visor-action">Esperando inicialización del modelo offline...</div>
+      </div>
+
+      <details class="fold-box">
+        <summary>⚙️ Alias de "Dron" y guía de comandos</summary>
+        <div class="fold-body">
+          <div class="field-grp">
+            <label for="inpWakeAliases">Alias aceptados al inicio de la frase (separados por coma):</label>
+            <input id="inpWakeAliases" type="text" autocomplete="off" spellcheck="false" />
+          </div>
+          <div class="phrases-actions">
+            <button id="btnSaveAliases" class="btn-save" type="button">Guardar alias</button>
+            <button id="btnResetAliases" class="btn-reset" type="button">Restaurar defecto</button>
+          </div>
+          <div class="cmd-guide">
+            <div>• <b>Dron, enciende</b> (o <i>prende / arranca</i>): enciende al % elegido.</div>
+            <div>• <b>Dron, estás volando</b>: activa Modo Vuelo (bloquea apagado directo).</div>
+            <div>• <b>Dron, aterriza</b>: rampa suave ~3.5 s hasta 0% y /stop.</div>
+            <div>• <b>Dron, apaga / para</b>: bloqueado en vuelo; debajo del umbral espera 8 s confirmación.</div>
+            <div>• <b>Dron, estoy seguro, apágate</b>: confirma el apagado en tierra.</div>
+            <div>• <b>Dron, sacamos cinco</b>: baile alegre 14 s (1 vez, conserva potencia si vuela).</div>
+            <div>• <b>Dron, qué te vale</b>: baile 22 s con bajoncitos bruscos (1 vez, conserva potencia si vuela).</div>
+          </div>
+        </div>
+      </details>
+
+      <details class="fold-box">
+        <summary>🧪 Pruebas rápidas de respaldo (ambiente ruidoso)</summary>
+        <div class="fold-body">
+          <div class="quick-grid">
+            <button id="btnQuickTts" class="btn-quick" type="button">🔊 Probar TTS</button>
+            <button id="btnQuickOn" class="btn-quick" type="button">⚡ Enciende</button>
+            <button id="btnQuickFlight" class="btn-quick warn" type="button">✈️ Estás volando</button>
+            <button id="btnQuickLand" class="btn-quick" type="button">🛬 Aterriza</button>
+            <button id="btnQuickOff" class="btn-quick warn" type="button">⛔ Apaga / Para</button>
+            <button id="btnQuickConfirm" class="btn-quick" type="button">✅ Estoy seguro</button>
+            <button id="btnQuickDance1" class="btn-quick dance" type="button">🎉 Sacamos cinco</button>
+            <button id="btnQuickDance2" class="btn-quick dance" type="button">😎 Qué te vale</button>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- TARJETA PLEGABLE CONFIGURACIÓN DE BAILE -->
+    <details class="fold-card">
+      <summary>🕺 Configuración de Baile (Base · Amplitud · Piso mínimo · Prueba rápida)</summary>
+      <div class="fold-body">
+        <div class="dance-cfg-grid">
+          <div class="setting-box">
+            <div class="setting-top">
+              <span>Base (si inicia en 0%):</span>
+              <span id="lblDanceBase" class="setting-val">45%</span>
+            </div>
+            <input id="rngDanceBase" type="range" min="15" max="85" step="1" value="45" />
+            <div class="setting-hint">Si el dron ya tenía potencia &gt; 0%, usa la potencia previa y la restaura al terminar.</div>
+          </div>
+
+          <div class="setting-box">
+            <div class="setting-top">
+              <span>Amplitud / intensidad:</span>
+              <span id="lblDanceAmp" class="setting-val">20%</span>
+            </div>
+            <input id="rngDanceAmp" type="range" min="5" max="35" step="1" value="20" />
+            <div class="setting-hint">Rango 5%–35% para balanceos y bajoncitos rítmicos.</div>
+          </div>
+
+          <div class="setting-box">
+            <div class="setting-top">
+              <span>Piso mínimo seguridad:</span>
+              <span id="lblDanceMin" class="setting-val">20%</span>
+            </div>
+            <input id="rngDanceMin" type="range" min="5" max="50" step="1" value="20" />
+            <div class="setting-hint">En vuelo aplica max(piso, potenciaPrevia − 1.35×amplitud) para no caerse.</div>
+          </div>
+        </div>
+
+        <div class="dance-test-row">
+          <button id="btnDanceTest1" class="btn-quick dance" type="button">🎉 Probar: Sacamos cinco (14 s)</button>
+          <button id="btnDanceTest2" class="btn-quick dance" type="button">😎 Probar: Qué te vale (22 s)</button>
+        </div>
+
+        <div class="phrases-actions">
+          <button id="btnResetDanceCfg" class="btn-reset" type="button">Restaurar parámetros de baile</button>
+        </div>
+      </div>
+    </details>
+
+    <!-- SECCIÓN CONTROL MANUAL -->
+    <div id="manualSection" class="manual-section">
+      <section class="card">
+        <div class="master-top">
+          <span class="card-title">SLIDER MAESTRO (M1 + M2 + M3 + M4)</span>
+          <span id="lblMasterPct" class="master-pct">0%</span>
+        </div>
+        <div class="bar-track"><div id="barMaster" class="bar-fill"></div></div>
+        <input id="rngMaster" type="range" min="0" max="100" step="1" value="0" />
+      </section>
+
+      <section class="motors-grid">
+        <article class="motor-card">
+          <div class="motor-hdr">
+            <span class="motor-name">M1 · GPIO 25</span>
+            <span class="motor-pin">CW</span>
+          </div>
+          <div id="pctM1" class="motor-pct">0%</div>
+          <div class="bar-track"><div id="barM1" class="bar-fill"></div></div>
+          <input id="rngM1" data-idx="0" type="range" min="0" max="100" step="1" value="0" />
+        </article>
+
+        <article class="motor-card">
+          <div class="motor-hdr">
+            <span class="motor-name">M2 · GPIO 26</span>
+            <span class="motor-pin">CCW</span>
+          </div>
+          <div id="pctM2" class="motor-pct">0%</div>
+          <div class="bar-track"><div id="barM2" class="bar-fill"></div></div>
+          <input id="rngM2" data-idx="1" type="range" min="0" max="100" step="1" value="0" />
+        </article>
+
+        <article class="motor-card">
+          <div class="motor-hdr">
+            <span class="motor-name">M3 · GPIO 27</span>
+            <span class="motor-pin">CCW</span>
+          </div>
+          <div id="pctM3" class="motor-pct">0%</div>
+          <div class="bar-track"><div id="barM3" class="bar-fill"></div></div>
+          <input id="rngM3" data-idx="2" type="range" min="0" max="100" step="1" value="0" />
+        </article>
+
+        <article class="motor-card">
+          <div class="motor-hdr">
+            <span class="motor-name">M4 · GPIO 14</span>
+            <span class="motor-pin">CW</span>
+          </div>
+          <div id="pctM4" class="motor-pct">0%</div>
+          <div class="bar-track"><div id="barM4" class="bar-fill"></div></div>
+          <input id="rngM4" data-idx="3" type="range" min="0" max="100" step="1" value="0" />
+        </article>
+      </section>
+
+      <section class="card">
+        <div class="card-hdr">
+          <span class="card-title">RUTINAS AUTOMÁTICAS EN ESP32</span>
+        </div>
+        <div class="tests-row">
+          <button id="btnSeq" class="btn-test" type="button">▶ Test 1 → 2 → 3 → 4 (35%)</button>
+          <button id="btnRamp" class="btn-test ramp" type="button">📈 Rampa Suave (0→100→0%)</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="hint-foot">Dron Testeo · Wi-Fi UDES_MOTORES_TEST · http://192.168.4.1 · Voz Vosk + TTS 100% Offline</div>
+  </main>
+
+  <!-- MODAL BLOQUEO DE BAILE -->
+  <div id="danceModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="danceModalTitle">
+    <div class="modal-card">
+      <div id="danceModalTitle" class="modal-title">🕺 Baile en curso</div>
+      <div class="modal-msg">¿Seguro que quieres deshabilitar el baile?</div>
+      <div class="modal-actions">
+        <button id="btnModalYes" class="btn-modal-yes" type="button">SÍ</button>
+        <button id="btnModalNo" class="btn-modal-no" type="button">NO</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const ESP_BASE = "http://192.168.4.1";
+      const STORAGE_ALIASES_KEY = "udes_dron_aliases_v2";
+      const STORAGE_POWER_KEY = "udes_dron_voice_power_v2";
+      const STORAGE_THRESHOLD_KEY = "udes_dron_takeoff_threshold_v2";
+      const STORAGE_DANCE_CFG_KEY = "udes_dron_dance_cfg_v2";
+
+      const DEFAULT_WAKE_ALIASES = [
+        "dron",
+        "drone",
+        "drones",
+        "tron",
+        "bron",
+        "drom",
+        "don dron"
+      ];
+
+      const DEFAULT_DANCE_CFG = {
+        basePct: 45,
+        ampPct: 20,
+        minPct: 20
+      };
+
+      const CONFIRM_OFF_WINDOW_MS = 8000;
+      const LANDING_DURATION_MS = 3500;
+      const LANDING_STEP_MS = 140;
+      const DANCE_TICK_MS = 90;
+      const VOICE_COOLDOWN_MS = 1800;
+
+      const SONG_META = {
+        sacamos_cinco: {
+          title: "🎉 Sacamos Cinco (14.0 s)",
+          durationMs: 14000
+        },
+        que_te_vale: {
+          title: "😎 Qué Te Vale (22.0 s)",
+          durationMs: 22000
+        }
+      };
+
+      const COMMAND_ALIASES = {
+        OFF_CONFIRM: [
+          "estoy seguro apagate",
+          "estoy seguro apaga te",
+          "estoy seguro apaga",
+          "estoy seguro apagarte",
+          "estoy seguro pagate",
+          "si estoy seguro apagate",
+          "si estoy seguro apaga te",
+          "si estoy seguro apaga",
+          "seguro apagate",
+          "seguro apaga te",
+          "seguro apaga",
+          "si seguro apagate",
+          "si seguro apaga"
+        ],
+        LAND: [
+          "aterriza",
+          "aterrizar",
+          "baja suave",
+          "bajar suave",
+          "aterrizaje",
+          "desciende"
+        ],
+        FLIGHT_MODE: [
+          "estas volando",
+          "esta volando",
+          "estoy volando",
+          "modo vuelo",
+          "en vuelo",
+          "activar modo vuelo",
+          "volando"
+        ],
+        OFF: [
+          "apagate",
+          "apaga te",
+          "apagar",
+          "apagarte",
+          "apaga",
+          "detener",
+          "detente",
+          "para"
+        ],
+        ON: [
+          "enciende",
+          "encender",
+          "prende",
+          "prender",
+          "arranca",
+          "arrancar"
+        ],
+        DANCE_CINCO: [
+          "sacamos cinco",
+          "sacamos 5",
+          "saco cinco",
+          "saco 5",
+          "sacar cinco"
+        ],
+        DANCE_VALE: [
+          "que te vale",
+          "me vale monda",
+          "te vale monda",
+          "vale monda",
+          "que vale",
+          "te vale",
+          "me vale"
+        ]
+      };
+
+      const STATE = {
+        IDLE: "IDLE",
+        RUNNING: "RUNNING",
+        FLIGHT_MODE: "FLIGHT_MODE",
+        AWAITING_OFF_CONFIRM: "AWAITING_OFF_CONFIRM",
+        LANDING: "LANDING",
+        DANCING: "DANCING"
+      };
+
+      const motorVals = [0, 0, 0, 0];
+      let appState = STATE.IDLE;
+      let modoVuelo = false;
+      let umbralDespegueHelio = 55;
+      let voicePowerPct = 40;
+      let wakeAliases = [...DEFAULT_WAKE_ALIASES];
+      let danceCfg = { ...DEFAULT_DANCE_CFG };
+
+      let voskReady = false;
+      let isListening = false;
+      let isTtsSpeaking = false;
+      let ttsMuteUntilMs = 0;
+      let calibratingWakeWord = false;
+      let calibTimerId = null;
+
+      let lastVoiceTriggerMs = 0;
+
+      let confirmIntervalId = null;
+      let confirmWaitStartTimerId = null;
+      let confirmExpiresAtMs = 0;
+      let awaitingConfirmSpeechEnd = false;
+
+      let landingTimerId = null;
+      let landingHttpInFlight = false;
+
+      let danceTimerId = null;
+      let danceHttpInFlight = false;
+      let danceActiveSongId = null;
+      let danceStartPerfMs = 0;
+      let danceEffectiveBase = 45;
+      let danceEffectiveFloor = 20;
+      let preDancePower = {
+        avg: 0,
+        motors: [0, 0, 0, 0],
+        modoVuelo: false
+      };
+      let danceDurationMs = 14000;
+      let danceModalIntent = "manual";
+      let danceProgressPollInFlight = false;
+      let danceLastPosMs = 0;
+      let danceFinishing = false;
+
+      let lastSliderSendMs = 0;
+      let lastLocalEditMs = 0;
+      let isDraggingSlider = false;
+      let busyTest = false;
+      let statusPollBusy = false;
+      let highlightTimeoutId = null;
+
+      const $ = (id) => document.getElementById(id);
+      const espBadge = $("espBadge");
+      const stateBadge = $("stateBadge");
+      const btnRefresh = $("btnRefresh");
+      const btnStopAll = $("btnStopAll");
+
+      const flightModeBanner = $("flightModeBanner");
+      const confirmOffBanner = $("confirmOffBanner");
+      const confirmCountdown = $("confirmCountdown");
+      const flightAlertBanner = $("flightAlertBanner");
+      const btnDismissFlightAlert = $("btnDismissFlightAlert");
+      const danceBanner = $("danceBanner");
+      const danceTitleText = $("danceTitleText");
+      const danceTimeText = $("danceTimeText");
+      const dancePhaseText = $("dancePhaseText");
+      const barDanceProgress = $("barDanceProgress");
+
+      const voskBadge = $("voskBadge");
+      const ttsBadge = $("ttsBadge");
+      const rngHeliumThreshold = $("rngHeliumThreshold");
+      const lblHeliumThreshold = $("lblHeliumThreshold");
+      const powerSelector = $("powerSelector");
+      const btnVoice = $("btnVoice");
+      const btnCalibrate = $("btnCalibrate");
+      const calibBanner = $("calibBanner");
+      const btnCancelCalib = $("btnCancelCalib");
+      const lblHeard = $("lblHeard");
+      const lblTts = $("lblTts");
+      const lblAction = $("lblAction");
+      const inpWakeAliases = $("inpWakeAliases");
+      const btnSaveAliases = $("btnSaveAliases");
+      const btnResetAliases = $("btnResetAliases");
+
+      const rngDanceBase = $("rngDanceBase");
+      const lblDanceBase = $("lblDanceBase");
+      const rngDanceAmp = $("rngDanceAmp");
+      const lblDanceAmp = $("lblDanceAmp");
+      const rngDanceMin = $("rngDanceMin");
+      const lblDanceMin = $("lblDanceMin");
+      const btnResetDanceCfg = $("btnResetDanceCfg");
+
+      const manualSection = $("manualSection");
+      const rngMaster = $("rngMaster");
+      const lblMasterPct = $("lblMasterPct");
+      const barMaster = $("barMaster");
+      const btnSeq = $("btnSeq");
+      const btnRamp = $("btnRamp");
+
+      const danceModal = $("danceModal");
+      const btnModalYes = $("btnModalYes");
+      const btnModalNo = $("btnModalNo");
+
+      const motorUI = [
+        { rng: $("rngM1"), pct: $("pctM1"), bar: $("barM1") },
+        { rng: $("rngM2"), pct: $("pctM2"), bar: $("barM2") },
+        { rng: $("rngM3"), pct: $("pctM3"), bar: $("barM3") },
+        { rng: $("rngM4"), pct: $("pctM4"), bar: $("barM4") }
+      ];
+
+      function clamp(val, lo, hi) {
+        return val < lo ? lo : val > hi ? hi : val;
+      }
+
+      function normalizeText(text) {
+        return String(text || "")
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9\s]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      function parseAliasList(raw) {
+        const seen = new Set();
+        const out = [];
+        String(raw || "")
+          .split(/[,\n;]+/)
+          .forEach((item) => {
+            const clean = normalizeText(item);
+            if (clean && clean !== "unk" && !seen.has(clean)) {
+              seen.add(clean);
+              out.push(clean);
+            }
+          });
+        return out;
+      }
+
+      function getCurrentSpeedPct() {
+        return Math.round((motorVals[0] + motorVals[1] + motorVals[2] + motorVals[3]) / 4);
+      }
+
+      function getVoskPlugin() {
+        return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.VoskVoice
+          ? window.Capacitor.Plugins.VoskVoice
+          : null;
+      }
+
+      function formatMs(ms) {
+        const totalSec = Math.max(0, Math.floor(ms / 1000));
+        const mm = String(Math.floor(totalSec / 60)).padStart(2, "0");
+        const ss = String(totalSec % 60).padStart(2, "0");
+        return `${mm}:${ss}`;
+      }
+
+      function setEspConn(ok, detail) {
+        if (ok) {
+          espBadge.textContent = "🟢 ESP32 · 192.168.4.1";
+          espBadge.className = "badge ok";
+        } else {
+          espBadge.textContent = detail || "🔴 Sin ESP32 (UDES_MOTORES_TEST)";
+          espBadge.className = "badge bad";
+        }
+      }
+
+      function setActionFeedback(text, kind) {
+        lblAction.textContent = text;
+        lblAction.className = "visor-action" + (kind ? " " + kind : "");
+      }
+
+      function syncAppStateUI() {
+        flightModeBanner.classList.toggle("hidden", !modoVuelo);
+        confirmOffBanner.classList.toggle("hidden", appState !== STATE.AWAITING_OFF_CONFIRM);
+        danceBanner.classList.toggle("hidden", appState !== STATE.DANCING);
+
+        const labelMap = {
+          [STATE.IDLE]: { txt: "LISTO", cls: "badge ok" },
+          [STATE.RUNNING]: { txt: "EN MARCHA", cls: "badge ok" },
+          [STATE.FLIGHT_MODE]: { txt: "MODO VUELO", cls: "badge flight" },
+          [STATE.AWAITING_OFF_CONFIRM]: { txt: "ESPERANDO CONFIRMACIÓN", cls: "badge warn" },
+          [STATE.LANDING]: { txt: "ATERRIZANDO", cls: "badge warn" },
+          [STATE.DANCING]: { txt: "BAILANDO", cls: "badge dance" }
+        };
+        const info = labelMap[appState] || labelMap[STATE.IDLE];
+        stateBadge.textContent = info.txt;
+        stateBadge.className = info.cls;
+        renderVoiceButton();
+      }
+
+      function setAppState(nextState) {
+        appState = nextState;
+        syncAppStateUI();
+      }
+
+      function refreshSteadyState() {
+        if (appState === STATE.DANCING || appState === STATE.LANDING || appState === STATE.AWAITING_OFF_CONFIRM) {
+          syncAppStateUI();
+          return;
+        }
+        if (modoVuelo) {
+          setAppState(STATE.FLIGHT_MODE);
+        } else if (getCurrentSpeedPct() > 0) {
+          setAppState(STATE.RUNNING);
+        } else {
+          setAppState(STATE.IDLE);
+        }
+      }
+
+      function loadSettings() {
+        try {
+          const savedAliases = localStorage.getItem(STORAGE_ALIASES_KEY);
+          if (savedAliases) {
+            const parsed = parseAliasList(savedAliases);
+            if (parsed.length > 0) wakeAliases = parsed;
+          }
+        } catch (_e) {}
+        inpWakeAliases.value = wakeAliases.join(", ");
+
+        try {
+          const savedPwr = parseInt(localStorage.getItem(STORAGE_POWER_KEY) || "40", 10);
+          if ([25, 40, 60, 80, 100].includes(savedPwr)) {
+            voicePowerPct = savedPwr;
+          }
+        } catch (_e) {}
+        renderPowerButtons();
+
+        try {
+          const savedThresh = parseInt(localStorage.getItem(STORAGE_THRESHOLD_KEY) || "55", 10);
+          if (Number.isFinite(savedThresh)) {
+            umbralDespegueHelio = clamp(savedThresh, 10, 95);
+          }
+        } catch (_e) {}
+        rngHeliumThreshold.value = umbralDespegueHelio;
+        lblHeliumThreshold.textContent = umbralDespegueHelio + "%";
+
+        try {
+          const savedDance = JSON.parse(localStorage.getItem(STORAGE_DANCE_CFG_KEY) || "null");
+          if (savedDance && typeof savedDance === "object") {
+            danceCfg.basePct = clamp(parseInt(savedDance.basePct, 10) || 45, 15, 85);
+            danceCfg.ampPct = clamp(parseInt(savedDance.ampPct, 10) || 20, 5, 35);
+            danceCfg.minPct = clamp(parseInt(savedDance.minPct, 10) || 20, 5, 50);
+          }
+        } catch (_e) {}
+        renderDanceConfigUI();
+      }
+
+      function saveDanceConfig() {
+        try {
+          localStorage.setItem(STORAGE_DANCE_CFG_KEY, JSON.stringify(danceCfg));
+        } catch (_e) {}
+      }
+
+      function renderDanceConfigUI() {
+        rngDanceBase.value = danceCfg.basePct;
+        lblDanceBase.textContent = danceCfg.basePct + "%";
+        rngDanceAmp.value = danceCfg.ampPct;
+        lblDanceAmp.textContent = danceCfg.ampPct + "%";
+        rngDanceMin.value = danceCfg.minPct;
+        lblDanceMin.textContent = danceCfg.minPct + "%";
+      }
+
+      function renderPowerButtons() {
+        powerSelector.querySelectorAll(".pill-btn").forEach((btn) => {
+          const pct = parseInt(btn.dataset.pct, 10);
+          btn.classList.toggle("active", pct === voicePowerPct);
+        });
+      }
+
+      function renderMotorsUI() {
+        let sum = 0;
+        for (let i = 0; i < 4; i++) {
+          const v = clamp(Math.round(motorVals[i]), 0, 100);
+          motorVals[i] = v;
+          sum += v;
+          motorUI[i].rng.value = v;
+          motorUI[i].pct.textContent = v + "%";
+          motorUI[i].bar.style.width = v + "%";
+        }
+        const avg = Math.round(sum / 4);
+        rngMaster.value = avg;
+        lblMasterPct.textContent = avg + "%";
+        barMaster.style.width = avg + "%";
+      }
+
+      function setAllMotorsLocal(pct) {
+        const v = clamp(Math.round(pct), 0, 100);
+        for (let i = 0; i < 4; i++) {
+          motorVals[i] = v;
+        }
+        lastLocalEditMs = Date.now();
+        renderMotorsUI();
+      }
+
+      function setIndividualMotorsLocal(m1, m2, m3, m4) {
+        motorVals[0] = clamp(Math.round(m1), 0, 100);
+        motorVals[1] = clamp(Math.round(m2), 0, 100);
+        motorVals[2] = clamp(Math.round(m3), 0, 100);
+        motorVals[3] = clamp(Math.round(m4), 0, 100);
+        lastLocalEditMs = Date.now();
+        renderMotorsUI();
+      }
+
+      async function espGet(path, readTimeoutMs = 2200) {
+        const url = ESP_BASE + path;
+        const capHttp = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp;
+
+        try {
+          let payload;
+          if (capHttp && typeof capHttp.get === "function") {
+            const resp = await capHttp.get({
+              url,
+              connectTimeout: 1600,
+              readTimeout: readTimeoutMs
+            });
+            if (!resp || (typeof resp.status === "number" && (resp.status < 200 || resp.status >= 300))) {
+              throw new Error("HTTP " + (resp ? resp.status : "error"));
+            }
+            payload = resp.data;
+          } else {
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), readTimeoutMs);
+            try {
+              const resp = await fetch(url, { method: "GET", cache: "no-store", signal: ctrl.signal });
+              if (!resp.ok) {
+                throw new Error("HTTP " + resp.status);
+              }
+              const txt = await resp.text();
+              try {
+                payload = JSON.parse(txt);
+              } catch (_e) {
+                payload = txt;
+              }
+            } finally {
+              clearTimeout(timer);
+            }
+          }
+
+          setEspConn(true);
+          return payload;
+        } catch (err) {
+          setEspConn(false);
+          throw err;
+        }
+      }
+
+      async function sendMotorValues(m1, m2, m3, m4) {
+        const a = clamp(Math.round(m1), 0, 100);
+        const b = clamp(Math.round(m2), 0, 100);
+        const c = clamp(Math.round(m3), 0, 100);
+        const d = clamp(Math.round(m4), 0, 100);
+        return espGet(`/set?m1=${a}&m2=${b}&m3=${c}&m4=${d}`, 2200);
+      }
+
+      async function sendEmergencyStopDirect() {
+        clearOffConfirmTimers();
+        stopLandingRoutine();
+        flightAlertBanner.classList.add("hidden");
+        setAllMotorsLocal(0);
+        modoVuelo = false;
+        setAppState(STATE.IDLE);
+        try {
+          await espGet("/stop", 2200);
+          setActionFeedback("⛔ Motores apagados (0%)", "stop");
+        } catch (_e) {
+          setActionFeedback("⛔ Sliders en 0% — Sin respuesta de 192.168.4.1", "err");
+        }
+      }
+
+      async function speakDron(text) {
+        lblTts.textContent = `"${text}"`;
+        const vosk = getVoskPlugin();
+        if (!vosk || typeof vosk.speak !== "function") {
+          return { spoken: false, fallback: true };
+        }
+        isTtsSpeaking = true;
+        try {
+          const res = await vosk.speak({ text });
+          if (!res || !res.spoken) {
+            isTtsSpeaking = false;
+          }
+          return res || { spoken: false };
+        } catch (_e) {
+          isTtsSpeaking = false;
+          return { spoken: false };
+        }
+      }
+
+      function clearOffConfirmTimers() {
+        if (confirmIntervalId !== null) {
+          clearInterval(confirmIntervalId);
+          confirmIntervalId = null;
+        }
+        if (confirmWaitStartTimerId !== null) {
+          clearTimeout(confirmWaitStartTimerId);
+          confirmWaitStartTimerId = null;
+        }
+        awaitingConfirmSpeechEnd = false;
+      }
+
+      function startOffConfirmationCountdown() {
+        if (appState !== STATE.AWAITING_OFF_CONFIRM) return;
+        clearOffConfirmTimers();
+        confirmExpiresAtMs = Date.now() + CONFIRM_OFF_WINDOW_MS;
+        confirmCountdown.textContent = "8s";
+
+        confirmIntervalId = setInterval(() => {
+          if (appState !== STATE.AWAITING_OFF_CONFIRM) {
+            clearOffConfirmTimers();
+            return;
+          }
+          const leftMs = confirmExpiresAtMs - Date.now();
+          if (leftMs <= 0) {
+            clearOffConfirmTimers();
+            const fallbackState = modoVuelo
+              ? STATE.FLIGHT_MODE
+              : (getCurrentSpeedPct() > 0 ? STATE.RUNNING : STATE.IDLE);
+            setAppState(fallbackState);
+            setActionFeedback("Confirmación expirada (cancelado silenciosamente)", "");
+            return;
+          }
+          const sec = Math.max(1, Math.ceil(leftMs / 1000));
+          confirmCountdown.textContent = sec + "s";
+        }, 200);
+      }
+
+      function triggerOffConfirmation() {
+        setAppState(STATE.AWAITING_OFF_CONFIRM);
+        confirmCountdown.textContent = "8s";
+        setActionFeedback("⚠️ Esperando 'Dron, estoy seguro, apágate' (8 s)...", "");
+        awaitingConfirmSpeechEnd = true;
+
+        speakDron("¿Estás seguro?").then((res) => {
+          if (!res || !res.spoken) {
+            awaitingConfirmSpeechEnd = false;
+            startOffConfirmationCountdown();
+          }
+        });
+
+        confirmWaitStartTimerId = setTimeout(() => {
+          if (appState === STATE.AWAITING_OFF_CONFIRM && awaitingConfirmSpeechEnd) {
+            awaitingConfirmSpeechEnd = false;
+            startOffConfirmationCountdown();
+          }
+        }, 3200);
+      }
+
+      function stopLandingRoutine() {
+        if (landingTimerId !== null) {
+          clearInterval(landingTimerId);
+          landingTimerId = null;
+        }
+        landingHttpInFlight = false;
+      }
+
+      function highlightManualControls() {
+        flightAlertBanner.classList.remove("hidden");
+        manualSection.classList.add("highlighted");
+        try {
+          manualSection.scrollIntoView({ behavior: "smooth", block: "center" });
+        } catch (_e) {}
+        if (highlightTimeoutId !== null) {
+          clearTimeout(highlightTimeoutId);
+        }
+        highlightTimeoutId = setTimeout(() => {
+          manualSection.classList.remove("highlighted");
+        }, 6500);
+      }
+
+      async function executeTurnOnCommand() {
+        clearOffConfirmTimers();
+        flightAlertBanner.classList.add("hidden");
+        const p = clamp(Math.round(voicePowerPct), 0, 100);
+        setAllMotorsLocal(p);
+        setAppState(modoVuelo ? STATE.FLIGHT_MODE : STATE.RUNNING);
+        try {
+          await sendMotorValues(p, p, p, p);
+          setActionFeedback(`✅ Motores encendidos al ${p}%`, "ok");
+        } catch (_e) {
+          setActionFeedback(`⚠️ Objetivo ${p}% — Sin respuesta de 192.168.4.1`, "err");
+        }
+        speakDron(`Motores encendidos al ${p} por ciento.`);
+      }
+
+      function executeFlightModeCommand() {
+        clearOffConfirmTimers();
+        modoVuelo = true;
+        setAppState(STATE.FLIGHT_MODE);
+        setActionFeedback("✈️ MODO VUELO ACTIVO — Apagado directo bloqueado", "ok");
+        speakDron("Modo vuelo activado. Apagado directo bloqueado, solo aterrizaje suave.");
+      }
+
+      async function executeLandingCommand() {
+        clearOffConfirmTimers();
+        flightAlertBanner.classList.add("hidden");
+        const startVals = [...motorVals];
+        const maxStart = Math.max(...startVals);
+
+        if (maxStart <= 0) {
+          modoVuelo = false;
+          setAllMotorsLocal(0);
+          setAppState(STATE.IDLE);
+          try { await espGet("/stop", 2200); } catch (_e) {}
+          setActionFeedback("🛬 Aterrizaje completado.", "ok");
+          speakDron("Aterrizaje completado.");
+          return;
+        }
+
+        stopLandingRoutine();
+        setAppState(STATE.LANDING);
+        setActionFeedback("🛬 Iniciando aterrizaje suave (~3.5 s)...", "");
+        speakDron("Iniciando aterrizaje suave.");
+
+        const startedAt = Date.now();
+        landingTimerId = setInterval(() => {
+          if (appState !== STATE.LANDING) {
+            stopLandingRoutine();
+            return;
+          }
+          const elapsed = Date.now() - startedAt;
+          if (elapsed >= LANDING_DURATION_MS) {
+            stopLandingRoutine();
+            setAllMotorsLocal(0);
+            modoVuelo = false;
+            setAppState(STATE.IDLE);
+            espGet("/stop", 2200)
+              .then(() => setActionFeedback("🛬 Aterrizaje completado.", "ok"))
+              .catch(() => setActionFeedback("🛬 Rampa 0% completa — sin respuesta de 192.168.4.1", "err"));
+            speakDron("Aterrizaje completado.");
+            return;
+          }
+
+          const ratio = clamp(1 - (elapsed / LANDING_DURATION_MS), 0, 1);
+          const next = startVals.map((v) => Math.round(v * ratio));
+          setIndividualMotorsLocal(next[0], next[1], next[2], next[3]);
+
+          if (!landingHttpInFlight) {
+            landingHttpInFlight = true;
+            sendMotorValues(next[0], next[1], next[2], next[3])
+              .catch(() => {})
+              .finally(() => { landingHttpInFlight = false; });
+          }
+        }, LANDING_STEP_MS);
+      }
+
+      function executeOffAttemptCommand() {
+        if (appState === STATE.DANCING) return;
+        const currentSpeed = getCurrentSpeedPct();
+        if (currentSpeed >= umbralDespegueHelio || modoVuelo) {
+          clearOffConfirmTimers();
+          setActionFeedback(
+            `🛡️ Bloqueado (${modoVuelo ? "Modo vuelo" : `${currentSpeed}% ≥ umbral ${umbralDespegueHelio}%`}) — Control manual`,
+            "stop"
+          );
+          highlightManualControls();
+          speakDron("Estoy volando, te paso el control manual.");
+          return;
+        }
+        triggerOffConfirmation();
+      }
+
+      async function executeConfirmedOffCommand() {
+        clearOffConfirmTimers();
+        flightAlertBanner.classList.add("hidden");
+        setAllMotorsLocal(0);
+        modoVuelo = false;
+        setAppState(STATE.IDLE);
+        try {
+          await espGet("/stop", 2200);
+          setActionFeedback("⛔ Confirmado. Motores apagados.", "stop");
+        } catch (_e) {
+          setActionFeedback("⛔ Confirmado en 0% — Sin respuesta de 192.168.4.1", "err");
+        }
+        speakDron("Confirmado. Motores apagados.");
+      }
+
+      // Coreografia 1: "Dron, sacamos cinco" (14.0 s)
+      function computeSacamosCincoFrame(tMs, base, amp, floor) {
+        let phaseLabel = "Celebración";
+        let m1 = base, m2 = base, m3 = base, m4 = base;
+
+        if (tMs < 2500) {
+          phaseLabel = "0.0–2.5 s: 3 golpes de entrada";
+          let delta = 0;
+          if (tMs < 450) delta = 0.40 * amp;
+          else if (tMs < 750) delta = 0;
+          else if (tMs < 1250) delta = 0.70 * amp;
+          else if (tMs < 1550) delta = 0;
+          else if (tMs < 2300) delta = 1.00 * amp;
+          else delta = 0;
+          m1 = m2 = m3 = m4 = base + delta;
+        } else if (tMs < 5500) {
+          phaseLabel = "2.5–5.5 s: Balanceos rápidos laterales";
+          const rel = tMs - 2500;
+          const step = Math.floor(rel / 220);
+          const accent = (rel % 440) < 160 ? 1.0 : 0.75;
+          const hi = base + amp * accent;
+          const lo = base - amp * accent * 0.75;
+          if (step % 2 === 0) {
+            m1 = hi; m3 = hi; m2 = lo; m4 = lo;
+          } else {
+            m2 = hi; m4 = hi; m1 = lo; m3 = lo;
+          }
+        } else if (tMs < 8500) {
+          phaseLabel = "5.5–8.5 s: Balanceos frontales + golpes";
+          const rel = tMs - 5500;
+          const step = Math.floor(rel / 220);
+          const trumpetHit = (rel % 880) < 180;
+          if (trumpetHit) {
+            m1 = base + 0.90 * amp;
+            m2 = base + 0.90 * amp;
+            m3 = base + 0.75 * amp;
+            m4 = base + 0.75 * amp;
+          } else if (step % 2 === 0) {
+            m1 = m2 = base + 0.85 * amp;
+            m3 = m4 = base - 0.75 * amp;
+          } else {
+            m3 = m4 = base + 0.85 * amp;
+            m1 = m2 = base - 0.75 * amp;
+          }
+        } else if (tMs < 12600) {
+          const rel = tMs - 8500;
+          if (tMs < 10500) {
+            phaseLabel = "8.5–10.5 s: Balanceos diagonales";
+            const step = Math.floor(rel / 220);
+            if (step % 2 === 0) {
+              m1 = m4 = base + 0.95 * amp;
+              m2 = m3 = base - 0.80 * amp;
+            } else {
+              m2 = m3 = base + 0.95 * amp;
+              m1 = m4 = base - 0.80 * amp;
+            }
+          } else {
+            phaseLabel = "10.5–12.6 s: Balanceos laterales veloces";
+            const step = Math.floor((tMs - 10500) / 180);
+            if (step % 2 === 0) {
+              m1 = m3 = base + 1.00 * amp;
+              m2 = m4 = base - 0.85 * amp;
+            } else {
+              m2 = m4 = base + 1.00 * amp;
+              m1 = m3 = base - 0.85 * amp;
+            }
+          }
+        } else {
+          phaseLabel = "12.6–14.0 s: Remate triunfal";
+          if (tMs < 12950) {
+            m1 = m2 = m3 = m4 = base + 0.95 * amp;
+          } else if (tMs < 13150) {
+            m1 = m2 = m3 = m4 = base - 0.30 * amp;
+          } else if (tMs < 13550) {
+            m1 = m2 = m3 = m4 = base + 1.05 * amp;
+          } else {
+            const target = preDancePower.avg > 0 ? preDancePower.avg : base;
+            const k = clamp((tMs - 13550) / 450, 0, 1);
+            const val = (base + 0.35 * amp) * (1 - k) + target * k;
+            m1 = m2 = m3 = m4 = val;
+          }
+        }
+
+        return {
+          phaseLabel,
+          motors: [
+            clamp(Math.round(m1), floor, 100),
+            clamp(Math.round(m2), floor, 100),
+            clamp(Math.round(m3), floor, 100),
+            clamp(Math.round(m4), floor, 100)
+          ]
+        };
+      }
+
+      // Coreografia 2: "Dron, qué te vale" (22.0 s)
+      function computeQueTeValeFrame(tMs, base, amp, floor) {
+        let phaseLabel = "Coro";
+        let m1 = base, m2 = base, m3 = base, m4 = base;
+
+        if (tMs < 5200) {
+          phaseLabel = "0.0–5.2 s: Balanceo marcado en el coro";
+          const step = Math.floor(tMs / 480);
+          if (tMs < 2600) {
+            if (step % 2 === 0) {
+              m1 = m3 = base + 0.85 * amp;
+              m2 = m4 = base - 0.75 * amp;
+            } else {
+              m2 = m4 = base + 0.85 * amp;
+              m1 = m3 = base - 0.75 * amp;
+            }
+          } else {
+            if (step % 2 === 0) {
+              m1 = m2 = base + 0.85 * amp;
+              m3 = m4 = base - 0.75 * amp;
+            } else {
+              m3 = m4 = base + 0.85 * amp;
+              m1 = m2 = base - 0.75 * amp;
+            }
+          }
+        } else if (tMs < 11400) {
+          phaseLabel = "5.2–11.4 s: Bajoncitos bruscos rítmicos (tramo 1)";
+          const rel = tMs - 5200;
+          const cycle = Math.floor(rel / 600);
+          const phase = rel % 600;
+          const pitchBias = (cycle % 2 === 0) ? 0.20 * amp : -0.20 * amp;
+          if (phase < 200) {
+            const drop = Math.max(floor, base - amp * 1.35);
+            m1 = m2 = m3 = m4 = drop;
+          } else if (phase < 380) {
+            const rec = Math.min(100, base + amp * 0.45);
+            m1 = m2 = rec + pitchBias;
+            m3 = m4 = rec - pitchBias;
+          } else {
+            m1 = m2 = m3 = m4 = base + amp * 0.15;
+          }
+        } else if (tMs < 15600) {
+          phaseLabel = "11.4–15.6 s: Balanceo enérgico lateral y diagonal";
+          const rel = tMs - 11400;
+          const step = Math.floor(rel / 400);
+          if (tMs < 13500) {
+            if (step % 2 === 0) {
+              m1 = m3 = base + 0.95 * amp;
+              m2 = m4 = base - 0.80 * amp;
+            } else {
+              m2 = m4 = base + 0.95 * amp;
+              m1 = m3 = base - 0.80 * amp;
+            }
+          } else {
+            if (step % 2 === 0) {
+              m1 = m4 = base + 0.95 * amp;
+              m2 = m3 = base - 0.80 * amp;
+            } else {
+              m2 = m3 = base + 0.95 * amp;
+              m1 = m4 = base - 0.80 * amp;
+            }
+          }
+        } else if (tMs < 21800) {
+          phaseLabel = "15.6–21.8 s: Bajoncitos bruscos rítmicos (tramo 2)";
+          const rel = tMs - 15600;
+          const cycle = Math.floor(rel / 600);
+          const phase = rel % 600;
+          const stairDrop = Math.min(0.35, cycle * 0.035);
+          const pitchBias = (cycle % 2 === 0) ? 0.18 * amp : -0.18 * amp;
+          if (phase < 210) {
+            const drop = Math.max(floor, base - amp * (1.25 + stairDrop));
+            m1 = m2 = m3 = m4 = drop;
+          } else if (phase < 390) {
+            const rec = Math.min(100, base + amp * (0.45 - stairDrop * 0.4));
+            m1 = m2 = rec + pitchBias;
+            m3 = m4 = rec - pitchBias;
+          } else {
+            m1 = m2 = m3 = m4 = Math.max(floor, base - amp * stairDrop * 0.25);
+          }
+        } else {
+          phaseLabel = "21.8–22.0 s: Cierre y restauración";
+          const target = preDancePower.avg > 0 ? preDancePower.avg : base;
+          const k = clamp((tMs - 21800) / 200, 0, 1);
+          const val = base * (1 - k) + target * k;
+          m1 = m2 = m3 = m4 = val;
+        }
+
+        return {
+          phaseLabel,
+          motors: [
+            clamp(Math.round(m1), floor, 100),
+            clamp(Math.round(m2), floor, 100),
+            clamp(Math.round(m3), floor, 100),
+            clamp(Math.round(m4), floor, 100)
+          ]
+        };
+      }
+
+      function clearDanceLoop() {
+        if (danceTimerId !== null) {
+          clearInterval(danceTimerId);
+          danceTimerId = null;
+        }
+        danceHttpInFlight = false;
+        danceProgressPollInFlight = false;
+      }
+
+      function getPreDanceTargetMotors() {
+        return preDancePower.avg > 0 ? [...preDancePower.motors] : [0, 0, 0, 0];
+      }
+
+      async function finishDanceGracefully(reasonText) {
+        if (appState !== STATE.DANCING || danceFinishing) return;
+        danceFinishing = true;
+        clearDanceLoop();
+        danceModal.classList.add("hidden");
+
+        const targetMotors = getPreDanceTargetMotors();
+        const targetAvg = Math.round((targetMotors[0] + targetMotors[1] + targetMotors[2] + targetMotors[3]) / 4);
+        const startMotors = [...motorVals];
+        const steps = 4;
+
+        for (let s = 1; s <= steps; s++) {
+          if (appState !== STATE.DANCING) {
+            danceFinishing = false;
+            return;
+          }
+          const k = s / steps;
+          const interp = [0, 1, 2, 3].map((i) => Math.round(startMotors[i] + (targetMotors[i] - startMotors[i]) * k));
+          setIndividualMotorsLocal(interp[0], interp[1], interp[2], interp[3]);
+          try {
+            if (s === steps && targetAvg === 0) {
+              await espGet("/stop", 2000);
+            } else {
+              await sendMotorValues(interp[0], interp[1], interp[2], interp[3]);
+            }
+          } catch (_e) {}
+          if (s < steps) {
+            await new Promise((r) => setTimeout(r, 100));
+          }
+        }
+
+        danceActiveSongId = null;
+        danceFinishing = false;
+        modoVuelo = preDancePower.modoVuelo;
+        setAppState(modoVuelo ? STATE.FLIGHT_MODE : (targetAvg > 0 ? STATE.RUNNING : STATE.IDLE));
+        setActionFeedback(
+          reasonText || (targetAvg > 0
+            ? `🕺 Baile finalizado. Potencia previa restaurada (${targetAvg}%).`
+            : "🕺 Baile finalizado. Motores en 0%."),
+          "ok"
+        );
+      }
+
+      async function startDance(songId) {
+        if (appState === STATE.DANCING || appState === STATE.LANDING) return;
+        const meta = SONG_META[songId];
+        if (!meta) return;
+
+        clearOffConfirmTimers();
+        flightAlertBanner.classList.add("hidden");
+
+        danceFinishing = false;
+        const avgNow = getCurrentSpeedPct();
+        preDancePower = {
+          avg: avgNow,
+          motors: [...motorVals],
+          modoVuelo
+        };
+
+        if (preDancePower.avg > 0) {
+          danceEffectiveBase = preDancePower.avg;
+          danceEffectiveFloor = clamp(
+            Math.max(danceCfg.minPct, Math.round(preDancePower.avg - danceCfg.ampPct * 1.35)),
+            5,
+            100
+          );
+        } else {
+          danceEffectiveBase = danceCfg.basePct;
+          danceEffectiveFloor = clamp(danceCfg.minPct, 5, 100);
+        }
+
+        danceActiveSongId = songId;
+        danceDurationMs = meta.durationMs;
+        danceLastPosMs = 0;
+
+        setAppState(STATE.DANCING);
+        danceTitleText.textContent = "🕺 " + meta.title;
+        dancePhaseText.textContent = "Iniciando audio nativo offline (1 sola reproducción)...";
+        danceTimeText.textContent = `00:00 / ${formatMs(danceDurationMs)}`;
+        barDanceProgress.style.width = "0%";
+        setActionFeedback(
+          `🕺 Baile "${meta.title}" activo (base ${danceEffectiveBase}%, piso ${danceEffectiveFloor}%).`,
+          "ok"
+        );
+
+        const vosk = getVoskPlugin();
+        let nativeStarted = false;
+        if (vosk && typeof vosk.playSong === "function") {
+          try {
+            const res = await vosk.playSong({ songId });
+            if (res && res.ignored) {
+              return;
+            }
+            if (res && res.playing) {
+              nativeStarted = true;
+              if (typeof res.durationMs === "number" && res.durationMs > 1000) {
+                danceDurationMs = res.durationMs;
+              }
+            }
+          } catch (err) {
+            setActionFeedback("⚠️ No se pudo iniciar audio nativo: " + (err && err.message ? err.message : err), "err");
+            setAppState(preDancePower.modoVuelo ? STATE.FLIGHT_MODE : (preDancePower.avg > 0 ? STATE.RUNNING : STATE.IDLE));
+            danceActiveSongId = null;
+            return;
+          }
+        }
+
+        danceStartPerfMs = performance.now();
+
+        danceTimerId = setInterval(async () => {
+          if (appState !== STATE.DANCING) {
+            clearDanceLoop();
+            return;
+          }
+
+          let posMs = danceLastPosMs;
+          if (nativeStarted && vosk && typeof vosk.getSongProgress === "function") {
+            if (!danceProgressPollInFlight) {
+              danceProgressPollInFlight = true;
+              try {
+                const prog = await vosk.getSongProgress();
+                if (prog && prog.playing) {
+                  posMs = Math.max(0, prog.currentPositionMs || 0);
+                  danceLastPosMs = posMs;
+                  if (typeof prog.durationMs === "number" && prog.durationMs > 1000) {
+                    danceDurationMs = prog.durationMs;
+                  }
+                } else if (prog && !prog.playing && (performance.now() - danceStartPerfMs) > 900) {
+                  danceProgressPollInFlight = false;
+                  finishDanceGracefully();
+                  return;
+                }
+              } catch (_e) {
+                posMs = performance.now() - danceStartPerfMs;
+              } finally {
+                danceProgressPollInFlight = false;
+              }
+            } else {
+              posMs = Math.max(danceLastPosMs, performance.now() - danceStartPerfMs);
+            }
+          } else {
+            posMs = performance.now() - danceStartPerfMs;
+            danceLastPosMs = posMs;
+            if (posMs >= danceDurationMs) {
+              finishDanceGracefully();
+              return;
+            }
+          }
+
+          const frame = songId === "sacamos_cinco"
+            ? computeSacamosCincoFrame(posMs, danceEffectiveBase, danceCfg.ampPct, danceEffectiveFloor)
+            : computeQueTeValeFrame(posMs, danceEffectiveBase, danceCfg.ampPct, danceEffectiveFloor);
+
+          dancePhaseText.textContent = frame.phaseLabel;
+          danceTimeText.textContent = `${formatMs(posMs)} / ${formatMs(danceDurationMs)}`;
+          barDanceProgress.style.width = clamp((posMs / Math.max(1, danceDurationMs)) * 100, 0, 100) + "%";
+
+          setIndividualMotorsLocal(frame.motors[0], frame.motors[1], frame.motors[2], frame.motors[3]);
+
+          if (!danceHttpInFlight) {
+            danceHttpInFlight = true;
+            sendMotorValues(frame.motors[0], frame.motors[1], frame.motors[2], frame.motors[3])
+              .catch(() => {})
+              .finally(() => { danceHttpInFlight = false; });
+          }
+        }, DANCE_TICK_MS);
+      }
+
+      function openDanceInterruptModal(intent) {
+        if (appState !== STATE.DANCING) return;
+        danceModalIntent = intent || "manual";
+        danceModal.classList.remove("hidden");
+      }
+
+      async function confirmDisableDance() {
+        danceModal.classList.add("hidden");
+        if (appState !== STATE.DANCING) return;
+
+        danceFinishing = false;
+        clearDanceLoop();
+        const vosk = getVoskPlugin();
+        if (vosk && typeof vosk.stopSong === "function") {
+          try { await vosk.stopSong(); } catch (_e) {}
+        }
+
+        const wasEmergencyStop = danceModalIntent === "emergency_stop";
+        danceActiveSongId = null;
+
+        if (wasEmergencyStop) {
+          setAllMotorsLocal(0);
+          modoVuelo = false;
+          setAppState(STATE.IDLE);
+          try { await espGet("/stop", 2200); } catch (_e) {}
+          setActionFeedback("⛔ Baile deshabilitado por emergencia. Motores en 0%.", "stop");
+          return;
+        }
+
+        const safeMotors = getPreDanceTargetMotors();
+        const safeAvg = Math.round((safeMotors[0] + safeMotors[1] + safeMotors[2] + safeMotors[3]) / 4);
+        setIndividualMotorsLocal(safeMotors[0], safeMotors[1], safeMotors[2], safeMotors[3]);
+        modoVuelo = preDancePower.modoVuelo;
+        setAppState(modoVuelo ? STATE.FLIGHT_MODE : (safeAvg > 0 ? STATE.RUNNING : STATE.IDLE));
+
+        try {
+          if (safeAvg === 0) {
+            await espGet("/stop", 2200);
+          } else {
+            await sendMotorValues(safeMotors[0], safeMotors[1], safeMotors[2], safeMotors[3]);
+          }
+          setActionFeedback(`🕺 Baile detenido. Potencia previa devuelta (${safeAvg}%).`, "ok");
+        } catch (_e) {
+          setActionFeedback("🕺 Baile detenido. Control manual devuelto (sin respuesta ESP32).", "err");
+        }
+      }
+
+      function extractWakeCommand(normText) {
+        if (!normText) return { matched: false };
+        const sorted = [...wakeAliases].sort((a, b) => b.length - a.length);
+        for (const alias of sorted) {
+          if (!alias) continue;
+          if (normText === alias) {
+            return { matched: true, alias, remainder: "" };
+          }
+          if (normText.startsWith(alias + " ")) {
+            return { matched: true, alias, remainder: normText.slice(alias.length).trim() };
+          }
+        }
+        return { matched: false };
+      }
+
+      function hasPhraseBoundary(haystack, phrase) {
+        if (!haystack || !phrase) return false;
+        return (" " + haystack + " ").includes(" " + phrase + " ");
+      }
+
+      function matchesCommandList(remainder, list) {
+        for (const p of list) {
+          if (hasPhraseBoundary(remainder, p)) return true;
+        }
+        return false;
+      }
+
+      function classifyPostWakeCommand(remainder) {
+        if (!remainder) return null;
+
+        // En espera de confirmacion: SOLO aceptar confirmacion exacta, sin bucles.
+        if (appState === STATE.AWAITING_OFF_CONFIRM) {
+          if (matchesCommandList(remainder, COMMAND_ALIASES.OFF_CONFIRM)) {
+            return "OFF_CONFIRM";
+          }
+          return null;
+        }
+
+        if (matchesCommandList(remainder, COMMAND_ALIASES.LAND)) {
+          return "LAND";
+        }
+        if (matchesCommandList(remainder, COMMAND_ALIASES.FLIGHT_MODE)) {
+          return "FLIGHT_MODE";
+        }
+        if (matchesCommandList(remainder, COMMAND_ALIASES.OFF)) {
+          return "OFF";
+        }
+        if (matchesCommandList(remainder, COMMAND_ALIASES.ON)) {
+          return "ON";
+        }
+        if (
+          matchesCommandList(remainder, COMMAND_ALIASES.DANCE_CINCO) ||
+          remainder === "cinco" ||
+          remainder === "5"
+        ) {
+          return "DANCE_CINCO";
+        }
+        if (matchesCommandList(remainder, COMMAND_ALIASES.DANCE_VALE)) {
+          return "DANCE_VALE";
+        }
+        return null;
+      }
+
+      function dispatchCommand(cmdId) {
+        switch (cmdId) {
+          case "OFF_CONFIRM":
+            executeConfirmedOffCommand();
+            break;
+          case "LAND":
+            executeLandingCommand();
+            break;
+          case "FLIGHT_MODE":
+            executeFlightModeCommand();
+            break;
+          case "OFF":
+            executeOffAttemptCommand();
+            break;
+          case "ON":
+            executeTurnOnCommand();
+            break;
+          case "DANCE_CINCO":
+            startDance("sacamos_cinco");
+            break;
+          case "DANCE_VALE":
+            startDance("que_te_vale");
+            break;
+          default:
+            break;
+        }
+      }
+
+      function stopCalibrationMode() {
+        calibratingWakeWord = false;
+        if (calibTimerId !== null) {
+          clearTimeout(calibTimerId);
+          calibTimerId = null;
+        }
+        calibBanner.classList.add("hidden");
+        btnCalibrate.classList.remove("active");
+      }
+
+      async function startCalibrationMode() {
+        if (!voskReady || appState === STATE.DANCING || appState === STATE.LANDING) return;
+        if (calibratingWakeWord) {
+          stopCalibrationMode();
+          return;
+        }
+
+        calibratingWakeWord = true;
+        calibBanner.classList.remove("hidden");
+        btnCalibrate.classList.add("active");
+        setActionFeedback("🧪 Di 'Dron' una vez para capturar su transcripción...", "");
+
+        if (!isListening) {
+          const vosk = getVoskPlugin();
+          if (vosk) {
+            try {
+              await vosk.startListening({ useGrammar: false });
+            } catch (_e) {}
+          }
+        }
+
+        calibTimerId = setTimeout(() => {
+          if (calibratingWakeWord) {
+            stopCalibrationMode();
+            setActionFeedback("Calibración cancelada por tiempo agotado.", "");
+          }
+        }, 10000);
+      }
+
+      function handleCalibrationFinalText(rawText) {
+        const norm = normalizeText(rawText);
+        if (!norm) return;
+        const words = norm.split(" ").filter(Boolean);
+        if (words.length === 0 || words.length > 4) {
+          setActionFeedback(`🧪 "${norm}" es muy largo. Di solo "Dron".`, "err");
+          return;
+        }
+
+        stopCalibrationMode();
+        if (!wakeAliases.includes(norm)) {
+          wakeAliases.unshift(norm);
+          inpWakeAliases.value = wakeAliases.join(", ");
+          try {
+            localStorage.setItem(STORAGE_ALIASES_KEY, inpWakeAliases.value);
+          } catch (_e) {}
+          setActionFeedback(`✅ Alias calibrado agregado: "${norm}"`, "ok");
+        } else {
+          setActionFeedback(`✅ "${norm}" ya estaba en los alias de Dron.`, "ok");
+        }
+        speakDron("Calibración guardada para Dron.");
+      }
+
+      function handleVoiceResult(data) {
+        if (!data || typeof data.text !== "string") return;
+        const rawText = data.text.trim();
+        if (!rawText) return;
+
+        if (isTtsSpeaking || Date.now() < ttsMuteUntilMs) {
+          return;
+        }
+
+        const isFinal = Boolean(data.isFinal);
+        lblHeard.textContent = rawText + (isFinal ? " [final]" : " [parcial]");
+
+        // PROHIBIDO disparar comandos en resultados parciales (evita bucles e impulsos dobles).
+        if (!isFinal) {
+          return;
+        }
+
+        if (appState === STATE.DANCING || appState === STATE.LANDING) {
+          return;
+        }
+
+        if (calibratingWakeWord) {
+          handleCalibrationFinalText(rawText);
+          return;
+        }
+
+        const norm = normalizeText(rawText);
+        const wake = extractWakeCommand(norm);
+        if (!wake.matched) {
+          return;
+        }
+
+        const cmdId = classifyPostWakeCommand(wake.remainder);
+        if (!cmdId) return;
+
+        const now = Date.now();
+        if (now - lastVoiceTriggerMs < VOICE_COOLDOWN_MS) {
+          return;
+        }
+
+        lastVoiceTriggerMs = now;
+        dispatchCommand(cmdId);
+      }
+
+      function renderVoiceButton() {
+        const locked = appState === STATE.DANCING || appState === STATE.LANDING;
+        btnVoice.disabled = !voskReady;
+        btnCalibrate.disabled = !voskReady || locked;
+        btnVoice.classList.toggle("listening", isListening);
+        btnVoice.textContent = isListening
+          ? "⏹️ DETENER ESCUCHA (OFFLINE)"
+          : '🎙️ TOCAR Y HABLAR ("DRON")';
+      }
+
+      function updateVoskStateUI(ev) {
+        const state = ev && ev.state ? ev.state : "error";
+        if (state === "loading") {
+          voskReady = false;
+          isListening = false;
+          voskBadge.textContent = "⏳ Cargando Vosk...";
+          voskBadge.className = "badge warn";
+          setActionFeedback("Desempaquetando modelo de español Vosk...", "");
+        } else if (state === "ready") {
+          voskReady = true;
+          isListening = false;
+          voskBadge.textContent = "✅ Vosk Listo";
+          voskBadge.className = "badge ok";
+          if (ev.ttsReady) {
+            ttsBadge.textContent = "🔊 TTS Masculino Listo";
+            ttsBadge.className = "badge ok";
+          }
+          setActionFeedback("Listo. Toca el micrófono y empieza tus frases con 'Dron'.", "ok");
+        } else if (state === "listening") {
+          voskReady = true;
+          isListening = true;
+          voskBadge.textContent = "🎙️ Escuchando (Dron)";
+          voskBadge.className = "badge ok";
+          setActionFeedback("Escuchando en español abierto (activador obligatorio: 'Dron')...", "ok");
+        } else if (state === "stopped") {
+          isListening = false;
+          if (voskReady) {
+            voskBadge.textContent = "✅ Vosk Listo";
+            voskBadge.className = "badge ok";
+          }
+          if (ev && ev.message) {
+            setActionFeedback(ev.message, "");
+          }
+        } else if (state === "error") {
+          isListening = false;
+          voskBadge.textContent = "❌ Error Vosk";
+          voskBadge.className = "badge bad";
+          setActionFeedback("Error Vosk: " + (ev && ev.message ? ev.message : "desconocido"), "err");
+        }
+        renderVoiceButton();
+      }
+
+      async function refreshTtsBadge(vosk) {
+        if (!vosk || typeof vosk.getVoiceInfo !== "function") return;
+        try {
+          const info = await vosk.getVoiceInfo();
+          if (info && info.ttsReady) {
+            ttsBadge.textContent = "🔊 TTS Masculino Listo";
+            ttsBadge.className = "badge ok";
+          } else {
+            ttsBadge.textContent = "⚠️ TTS no disponible";
+            ttsBadge.className = "badge warn";
+          }
+        } catch (_e) {}
+      }
+
+      async function initVoskOffline() {
+        const vosk = getVoskPlugin();
+        if (!vosk) {
+          voskReady = false;
+          voskBadge.textContent = "⚠️ Solo en APK Android";
+          voskBadge.className = "badge warn";
+          ttsBadge.textContent = "⚠️ TTS nativo en APK";
+          ttsBadge.className = "badge warn";
+          setActionFeedback("Usa los botones rápidos para probar en navegador, o abre el APK Android.", "");
+          renderVoiceButton();
+          return;
+        }
+
+        try {
+          await vosk.addListener("voiceState", updateVoskStateUI);
+          await vosk.addListener("voiceResult", handleVoiceResult);
+
+          await vosk.addListener("ttsStart", () => {
+            isTtsSpeaking = true;
+            ttsBadge.textContent = "🗣️ Dron hablando...";
+            ttsBadge.className = "badge flight";
+          });
+
+          await vosk.addListener("ttsEnd", () => {
+            isTtsSpeaking = false;
+            ttsMuteUntilMs = Date.now() + 300;
+            ttsBadge.textContent = "🔊 TTS Masculino Listo";
+            ttsBadge.className = "badge ok";
+            if (appState === STATE.AWAITING_OFF_CONFIRM && awaitingConfirmSpeechEnd) {
+              awaitingConfirmSpeechEnd = false;
+              startOffConfirmationCountdown();
+            }
+          });
+
+          await vosk.addListener("songEnded", (ev) => {
+            if (appState === STATE.DANCING && (!ev || !danceActiveSongId || ev.songId === danceActiveSongId)) {
+              finishDanceGracefully();
+            }
+          });
+
+          const res = await vosk.initModel();
+          if (res && res.state) {
+            updateVoskStateUI(res);
+          }
+          setTimeout(() => refreshTtsBadge(vosk), 1200);
+        } catch (err) {
+          updateVoskStateUI({
+            state: "error",
+            message: err && err.message ? err.message : "No se pudo cargar el modelo offline"
+          });
+        }
+      }
+
+      async function toggleListening() {
+        const vosk = getVoskPlugin();
+        if (!vosk || !voskReady) return;
+
+        try {
+          if (isListening) {
+            stopCalibrationMode();
+            await vosk.stopListening();
+            isListening = false;
+            renderVoiceButton();
+          } else {
+            await vosk.startListening({ useGrammar: false });
+          }
+        } catch (err) {
+          isListening = false;
+          renderVoiceButton();
+          setActionFeedback("Error micrófono: " + (err && err.message ? err.message : err), "err");
+        }
+      }
+
+      async function pollStatus(force = false) {
+        if (statusPollBusy || busyTest) return;
+        if (appState === STATE.DANCING || appState === STATE.LANDING) return;
+        if (!force && (isDraggingSlider || (Date.now() - lastLocalEditMs < 1200))) return;
+
+        statusPollBusy = true;
+        try {
+          const data = await espGet("/status", 1800);
+          if (data && typeof data === "object") {
+            const keys = ["m1", "m2", "m3", "m4"];
+            let updated = false;
+            for (let i = 0; i < 4; i++) {
+              const v = data[keys[i]];
+              if (typeof v === "number" && Number.isFinite(v)) {
+                motorVals[i] = clamp(Math.round(v), 0, 100);
+                updated = true;
+              }
+            }
+            if (
+              updated &&
+              appState !== STATE.DANCING &&
+              appState !== STATE.LANDING &&
+              !isDraggingSlider &&
+              (Date.now() - lastLocalEditMs >= 1200)
+            ) {
+              renderMotorsUI();
+              refreshSteadyState();
+            }
+          }
+        } catch (_e) {
+        } finally {
+          statusPollBusy = false;
+        }
+      }
+
+      function throttledSendMotors() {
+        const now = Date.now();
+        if (now - lastSliderSendMs < 75) return;
+        lastSliderSendMs = now;
+        sendMotorValues(motorVals[0], motorVals[1], motorVals[2], motorVals[3]).catch(() => {});
+      }
+
+      function flushSendMotors() {
+        lastSliderSendMs = Date.now();
+        sendMotorValues(motorVals[0], motorVals[1], motorVals[2], motorVals[3]).catch(() => {});
+      }
+
+      function interceptDanceControl(ev, intent = "manual") {
+        if (appState !== STATE.DANCING) return false;
+        if (ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+        }
+        openDanceInterruptModal(intent);
+        return true;
+      }
+
+      btnStopAll.addEventListener("click", (ev) => {
+        if (interceptDanceControl(ev, "emergency_stop")) return;
+        sendEmergencyStopDirect();
+      });
+
+      btnRefresh.addEventListener("click", () => {
+        pollStatus(true);
+      });
+
+      btnDismissFlightAlert.addEventListener("click", () => {
+        flightAlertBanner.classList.add("hidden");
+        manualSection.classList.remove("highlighted");
+      });
+
+      btnModalYes.addEventListener("click", () => {
+        confirmDisableDance();
+      });
+      btnModalNo.addEventListener("click", () => {
+        danceModal.classList.add("hidden");
+      });
+
+      rngHeliumThreshold.addEventListener("input", () => {
+        umbralDespegueHelio = clamp(parseInt(rngHeliumThreshold.value, 10) || 55, 10, 95);
+        lblHeliumThreshold.textContent = umbralDespegueHelio + "%";
+        try { localStorage.setItem(STORAGE_THRESHOLD_KEY, String(umbralDespegueHelio)); } catch (_e) {}
+      });
+
+      powerSelector.addEventListener("click", (ev) => {
+        const btn = ev.target.closest(".pill-btn");
+        if (!btn) return;
+        if (interceptDanceControl(ev, "manual")) return;
+        const pct = parseInt(btn.dataset.pct, 10);
+        if (!Number.isFinite(pct)) return;
+        voicePowerPct = pct;
+        try { localStorage.setItem(STORAGE_POWER_KEY, String(pct)); } catch (_e) {}
+        renderPowerButtons();
+      });
+
+      btnVoice.addEventListener("click", () => {
+        toggleListening();
+      });
+
+      btnCalibrate.addEventListener("click", () => {
+        startCalibrationMode();
+      });
+
+      btnCancelCalib.addEventListener("click", () => {
+        stopCalibrationMode();
+        setActionFeedback("Calibración cancelada.", "");
+      });
+
+      btnSaveAliases.addEventListener("click", () => {
+        const parsed = parseAliasList(inpWakeAliases.value);
+        wakeAliases = parsed.length > 0 ? parsed : [...DEFAULT_WAKE_ALIASES];
+        inpWakeAliases.value = wakeAliases.join(", ");
+        try { localStorage.setItem(STORAGE_ALIASES_KEY, inpWakeAliases.value); } catch (_e) {}
+        setActionFeedback(`✅ ${wakeAliases.length} alias de 'Dron' guardados.`, "ok");
+      });
+
+      btnResetAliases.addEventListener("click", () => {
+        wakeAliases = [...DEFAULT_WAKE_ALIASES];
+        inpWakeAliases.value = wakeAliases.join(", ");
+        try { localStorage.removeItem(STORAGE_ALIASES_KEY); } catch (_e) {}
+        setActionFeedback("Alias de 'Dron' restaurados por defecto.", "");
+      });
+
+      rngDanceBase.addEventListener("input", () => {
+        danceCfg.basePct = clamp(parseInt(rngDanceBase.value, 10) || 45, 15, 85);
+        lblDanceBase.textContent = danceCfg.basePct + "%";
+        saveDanceConfig();
+      });
+
+      rngDanceAmp.addEventListener("input", () => {
+        danceCfg.ampPct = clamp(parseInt(rngDanceAmp.value, 10) || 20, 5, 35);
+        lblDanceAmp.textContent = danceCfg.ampPct + "%";
+        saveDanceConfig();
+      });
+
+      rngDanceMin.addEventListener("input", () => {
+        danceCfg.minPct = clamp(parseInt(rngDanceMin.value, 10) || 20, 5, 50);
+        lblDanceMin.textContent = danceCfg.minPct + "%";
+        saveDanceConfig();
+      });
+
+      btnResetDanceCfg.addEventListener("click", () => {
+        danceCfg = { ...DEFAULT_DANCE_CFG };
+        try { localStorage.removeItem(STORAGE_DANCE_CFG_KEY); } catch (_e) {}
+        renderDanceConfigUI();
+        setActionFeedback("Parámetros de baile restaurados por defecto.", "");
+      });
+
+      $("btnQuickTts").addEventListener("click", () => {
+        speakDron("Hola, soy el sistema de voz del Dron. Listo sin conexión.");
+      });
+      $("btnQuickOn").addEventListener("click", () => {
+        if (appState === STATE.DANCING || appState === STATE.LANDING) return;
+        dispatchCommand("ON");
+      });
+      $("btnQuickFlight").addEventListener("click", () => {
+        if (appState === STATE.DANCING || appState === STATE.LANDING) return;
+        dispatchCommand("FLIGHT_MODE");
+      });
+      $("btnQuickLand").addEventListener("click", () => {
+        if (appState === STATE.DANCING || appState === STATE.LANDING) return;
+        dispatchCommand("LAND");
+      });
+      $("btnQuickOff").addEventListener("click", () => {
+        if (appState === STATE.DANCING || appState === STATE.LANDING) return;
+        dispatchCommand("OFF");
+      });
+      $("btnQuickConfirm").addEventListener("click", () => {
+        if (appState !== STATE.AWAITING_OFF_CONFIRM) {
+          setActionFeedback("Primero activa 'Apaga / Para' debajo del umbral para confirmar.", "");
+          return;
+        }
+        dispatchCommand("OFF_CONFIRM");
+      });
+      $("btnQuickDance1").addEventListener("click", () => {
+        dispatchCommand("DANCE_CINCO");
+      });
+      $("btnQuickDance2").addEventListener("click", () => {
+        dispatchCommand("DANCE_VALE");
+      });
+      $("btnDanceTest1").addEventListener("click", () => {
+        dispatchCommand("DANCE_CINCO");
+      });
+      $("btnDanceTest2").addEventListener("click", () => {
+        dispatchCommand("DANCE_VALE");
+      });
+
+      function attachDanceLockSlider(rangeEl, onValidInput, onValidChange) {
+        const blockStart = (ev) => {
+          if (appState === STATE.DANCING) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            openDanceInterruptModal("manual");
+            return true;
+          }
+          return false;
+        };
+
+        rangeEl.addEventListener("pointerdown", (ev) => {
+          if (blockStart(ev)) return;
+          isDraggingSlider = true;
+        });
+
+        rangeEl.addEventListener("touchstart", (ev) => {
+          if (blockStart(ev)) return;
+          isDraggingSlider = true;
+        }, { passive: false });
+
+        rangeEl.addEventListener("input", (ev) => {
+          if (appState === STATE.DANCING) {
+            ev.preventDefault();
+            renderMotorsUI();
+            openDanceInterruptModal("manual");
+            return;
+          }
+          isDraggingSlider = true;
+          onValidInput();
+        });
+
+        rangeEl.addEventListener("change", (ev) => {
+          if (appState === STATE.DANCING) {
+            ev.preventDefault();
+            renderMotorsUI();
+            openDanceInterruptModal("manual");
+            return;
+          }
+          isDraggingSlider = false;
+          onValidChange();
+        });
+      }
+
+      attachDanceLockSlider(
+        rngMaster,
+        () => {
+          setAllMotorsLocal(parseInt(rngMaster.value, 10));
+          refreshSteadyState();
+          throttledSendMotors();
+        },
+        () => {
+          setAllMotorsLocal(parseInt(rngMaster.value, 10));
+          refreshSteadyState();
+          flushSendMotors();
+        }
+      );
+
+      motorUI.forEach((m, idx) => {
+        attachDanceLockSlider(
+          m.rng,
+          () => {
+            motorVals[idx] = clamp(parseInt(m.rng.value, 10), 0, 100);
+            lastLocalEditMs = Date.now();
+            renderMotorsUI();
+            refreshSteadyState();
+            throttledSendMotors();
+          },
+          () => {
+            motorVals[idx] = clamp(parseInt(m.rng.value, 10), 0, 100);
+            lastLocalEditMs = Date.now();
+            renderMotorsUI();
+            refreshSteadyState();
+            flushSendMotors();
+          }
+        );
+      });
+
+      async function runAutomatedTest(endpoint, label) {
+        if (busyTest || appState === STATE.DANCING || appState === STATE.LANDING) return;
+        busyTest = true;
+        btnSeq.disabled = true;
+        btnRamp.disabled = true;
+        setActionFeedback("⏳ Ejecutando " + label + "...", "");
+        try {
+          await espGet(endpoint, 3000);
+          const startedAt = Date.now();
+          while (Date.now() - startedAt < 9000) {
+            await new Promise((r) => setTimeout(r, 150));
+            const st = await espGet("/status", 1800);
+            if (st && typeof st === "object") {
+              motorVals[0] = clamp(Math.round(Number(st.m1) || 0), 0, 100);
+              motorVals[1] = clamp(Math.round(Number(st.m2) || 0), 0, 100);
+              motorVals[2] = clamp(Math.round(Number(st.m3) || 0), 0, 100);
+              motorVals[3] = clamp(Math.round(Number(st.m4) || 0), 0, 100);
+              renderMotorsUI();
+              if (st.mode === "MANUAL") break;
+            }
+          }
+          setAllMotorsLocal(0);
+          refreshSteadyState();
+          setActionFeedback("✅ Finalizó: " + label, "ok");
+        } catch (_e) {
+          setActionFeedback("⚠️ Error al ejecutar " + label + " (verifica Wi-Fi UDES_MOTORES_TEST)", "err");
+        } finally {
+          busyTest = false;
+          btnSeq.disabled = false;
+          btnRamp.disabled = false;
+        }
+      }
+
+      btnSeq.addEventListener("click", (ev) => {
+        if (interceptDanceControl(ev, "manual")) return;
+        runAutomatedTest("/seq", "Test 1 → 2 → 3 → 4 (35%)");
+      });
+
+      btnRamp.addEventListener("click", (ev) => {
+        if (interceptDanceControl(ev, "manual")) return;
+        runAutomatedTest("/ramp", "Rampa Suave (0→100→0%)");
+      });
+
+      loadSettings();
+      renderMotorsUI();
+      syncAppStateUI();
+      initVoskOffline();
+      pollStatus(true);
+      setInterval(() => pollStatus(false), 2000);
+    })();
+  </script>
+</body>
+</html>
